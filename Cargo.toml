@@ -1,0 +1,16 @@
+[package]
+name = "gameboy-emulator"
+version = "0.1.0"
+authors = ["Ewerton Carlos Assis <earaujoassis@gmail.com>"]
+description = "GameBoy emulator written in Rust"
+repository = "https://github.com/earaujoassis/gameboy-emulator"
+readme = "README.md"
+categories = ["emulator", "Nintendo GameBoy", "Nintendo GameBoy Color"]
+license = "MIT"
+
+[dependencies]
+sdl2 = "0.33.0"
+
+[[bin]]
+name = "gbc"
+path = "src/main.rs"
