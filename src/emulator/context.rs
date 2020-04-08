@@ -5,15 +5,19 @@ use sdl2::render::WindowCanvas;
 use sdl2::Sdl;
 use std::time::Duration;
 
+use ::hardware::system::System;
+
 pub struct EmulatorContext {
-    canvas: WindowCanvas,
     context: Sdl,
+    canvas: WindowCanvas,
+    hardware: System,
 }
 
 impl EmulatorContext {
 
-    pub fn new() -> EmulatorContext {
+    pub fn new(file_path: String) -> EmulatorContext {
         let title = "GameBoy Emulator".to_owned();
+        let system = System::new(file_path.to_owned());
         let context = sdl2::init().unwrap();
         let video_subsystem = context.video().unwrap();
         let window = video_subsystem.window(&title, 320, 288)
@@ -21,13 +25,15 @@ impl EmulatorContext {
             .build()
             .unwrap();
         let mut canvas = window.into_canvas().build().unwrap();
+
         canvas.set_draw_color(Color::RGB(0, 255, 255));
         canvas.clear();
         canvas.present();
 
         EmulatorContext {
-            canvas: canvas,
             context: context,
+            canvas: canvas,
+            hardware: system,
         }
     }
 

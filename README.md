@@ -11,8 +11,18 @@ this project (and its compiled binary).
 
 Please take a look at [/issues](https://github.com/earaujoassis/gameboy-emulator/issues)
 
+## Development steps
+
+* [ ] CPU and RAM
+* [ ] ROM
+* [ ] Video
+* [ ] Controllers
+* [ ] Audio
+* [ ] Tunning, Optimization, and Compliance to the original hardware
+* [ ] Bluetooth Joystick (PS4 DualShock 4)
+
 ## License
 
-GAME BOY is a trademark of NINTENDO OF AMERICA, INC. This current project has the sole purpose of
-testing and studying computer organization and architecture. The code here presented is
-licensed under the MIT License. Copyright &copy; Ewerton Carlos Assis.
+"GAME BOY" and "NINTENDO" are trademarks of NINTENDO OF AMERICA, INC. This current project
+has the sole purpose of testing and studying Computer Organization and Architecture. The
+code here presented is licensed under the MIT License. Copyright &copy; Ewerton Carlos Assis.
