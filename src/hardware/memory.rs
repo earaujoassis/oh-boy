@@ -5,7 +5,6 @@ use super::memory_map;
 use super::cartridge_types;
 
 pub struct ROM {
-    file_path: String,
     boot_rom_data: Vec<u8>,
     data: Vec<u8>,
     rom_cartridge_type: u8,
@@ -57,7 +56,6 @@ impl Memory {
         memory_size = 0xFFFF - rom_buffer.len();
 
         rom = ROM {
-            file_path: file_path.to_owned(),
             data: rom_buffer,
             boot_rom_data: boot_rom_buffer,
             rom_cartridge_type: rom_cartridge_type,
@@ -74,6 +72,7 @@ impl Memory {
         }
     }
 
+    #[allow(unreachable_patterns)]
     pub fn fetch(&mut self, address: u16) -> u8 {
         match address {
             // Internal / BOOT ROM (if enabled; external ROM otherwise)
@@ -102,10 +101,12 @@ impl Memory {
             memory_map::RAM0..=memory_map::URAM => 0xFF,
             // Usable High RAM Area
             memory_map::HRAM..=memory_map::RAM9 => self.ram.data[address as usize],
+            // This is by definition unreachable, since the address (u16) maximum value is 0xFFFF
             _ => panic!("Unreachable area: ${:02X}", address)
         }
     }
 
+    #[allow(unreachable_patterns)]
     pub fn write(&mut self, address: u16, word: u8) {
         match address {
             // Internal / BOOT ROM (if enabled; external ROM otherwise)
@@ -130,6 +131,7 @@ impl Memory {
             memory_map::RAM0..=memory_map::URAM => {},
             // Usable High RAM Area
             memory_map::HRAM..=memory_map::RAM9 => self.ram.data[address as usize] = word,
+            // This is by definition unreachable, since the address (u16) maximum value is 0xFFFF
             _ => panic!("Unreachable area: ${:02X}", address)
         }
     }

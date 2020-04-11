@@ -5,6 +5,9 @@ mod tests {
 
     #[test]
     fn test_swap_nibbles() {
+        assert_eq!(swap_nibbles(0x01, 4), 0x10);
+        assert_eq!(swap_nibbles(0xF2, 4), 0x2F);
+        assert_eq!(swap_nibbles(0x81, 4), 0x18);
         assert_eq!(swap_nibbles(0x0102, 8), 0x0201);
         assert_eq!(swap_nibbles(0xF102, 8), 0x02F1);
         assert_eq!(swap_nibbles(0xF188, 8), 0x88F1);
