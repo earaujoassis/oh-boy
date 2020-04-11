@@ -18,9 +18,9 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             cpu.stopped = true;
             1
         },
-        /* HALT */ 0x10 => { cpu.halted = true; 1 },
+        /* HALT */ 0x76 => { cpu.halted = true; 1 },
         /* DI   */ 0xF3 => { cpu.interruption_enabled = false; 1 },
-        /* EI   */ 0xF3 => { cpu.interruption_enabled = true; 1 },
+        /* EI   */ 0xFB => { cpu.interruption_enabled = true; 1 },
         /* LD BC,d16 */ 0x01 => {
             let lsb = cpu.fetch_operand(memory);
             let msb = cpu.fetch_operand(memory);
