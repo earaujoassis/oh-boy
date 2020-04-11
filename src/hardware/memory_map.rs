@@ -1,5 +1,8 @@
 /// Special Memory Addresses & Memory Mapping Areas
 
+pub const IROM: u16 = 0x0000; // Internal / BOOT ROM (if enabled) Start
+pub const IROX: u16 = 0x00FF; // Internal / BOOT ROM (if enabled) End
+pub const IROZ: u16 = 0x0100; // External ROM Space
 pub const ROM0: u16 = 0x0000; // (Codebase Acronym) ROM Bank #0 Start
 //             FROM   0x0001
 //               TO   0x003F
@@ -44,23 +47,23 @@ pub const CSU0: u16 = 0x014E; // Checksum Start
 pub const CSU9: u16 = 0x014F; // Checksum End
 //             FROM   0x0150
 //               TO   0x3FFE
-pub const ROM9: u16 = 0x3FFF; // (Codebase Acronym) ROM Bank #0 End
-pub const RB0:  u16 = 0x4000; // (Codebase Acronym) Switchable ROM Bank Start
+pub const ROM9: u16 = 0x3FFF; // (Codebase Acronym) Non-switchable ROM Bank #0 End
+pub const RB0:  u16 = 0x4000; // (Codebase Acronym) Switchable / External ROM Bank Start
 //             FROM   0x4001
 //               TO   0x7FFE
-pub const RB9:  u16 = 0x7FFF; // (Codebase Acronym) Switchable ROM Bank End
+pub const RB9:  u16 = 0x7FFF; // (Codebase Acronym) Switchable / External ROM Bank End
 pub const VR0:  u16 = 0x8000; // (Codebase Acronym) VRAM Start
 //             FROM   0x8001
 //               TO   0x9FFE
 pub const VR9:  u16 = 0x9FFF; // (Codebase Acronym) VRAM End
-pub const SWR0:  u16 = 0xA000; // (Codebase Acronym) Switchable RAM Bank Start
+pub const SWR0: u16 = 0xA000; // (Codebase Acronym) Switchable / External RAM Bank Start
 //             FROM   0xA001
 //               TO   0xBFFE
-pub const SWR9:  u16 = 0xBFFF; // (Codebase Acronym) Switchable RAM Bank End
-pub const WR0:  u16 = 0xC000; // (Codebase Acronym) Internal RAM (Work RAM) Start
+pub const SWR9: u16 = 0xBFFF; // (Codebase Acronym) Switchable / External RAM Bank End
+pub const WR0:  u16 = 0xC000; // (Codebase Acronym) Internal (Work) RAM Start
 //             FROM   0xC001
 //               TO   0xDFFE
-pub const WR9:  u16 = 0xDFFF; // (Codebase Acronym) Internal RAM (Work RAM) End
+pub const WR9:  u16 = 0xDFFF; // (Codebase Acronym) Internal (Work) RAM End
 pub const ER0:  u16 = 0xE000; // (Codebase Acronym) ECHO of RAM (0xC000) Start
 //             FROM   0xE001
 //               TO   0xFDFE
@@ -72,10 +75,12 @@ pub const OAM9: u16 = 0xFE9F; // (Codebase Acronym) Object Attribute Memory (OAM
 pub const RAM0: u16 = 0xFEA0; // (Codebase Acronym) High RAM Area Start
 //             FROM   0xFEA1
 //               TO   0xFEFF
+pub const URAM: u16 = 0xFEFF; // Unused High RAM Area End
 //                    0xFF00     SPECIAL MEMORY ADDRESSES (START)
+pub const HRAM: u16 = 0xFF00; // Usable High RAM Area Start
 pub const P1:   u16 = 0xFF00; // P1   (Read Joypad Info. & Determine System Type R/W)
 pub const SB:   u16 = 0xFF01; // SB   (Serial Transfer Data R/W)
-pub const SC:   u16 = 0xFF02; // SC   (SIO Control R/W)
+pub const SC:   u16 = 0xFF02; // SC   (Serial Transfer Control R/W)
 //                    0xFF03
 pub const DIV:  u16 = 0xFF04; // DIV  (Divider R/W)
 pub const TIMA: u16 = 0xFF05; // TIMA (Timer Counter R/W)
@@ -123,8 +128,9 @@ pub const BGP:  u16 = 0xFF47; // BGP  (Background & Window Palette Data R/W)
 pub const OBP0: u16 = 0xFF48; // OBP0 (Object Palette 0 Data R/W)
 pub const OBP1: u16 = 0xFF49; // OBP1 (Object Palette 1 Data R/W)
 pub const WY:   u16 = 0xFF4A; // WY   (Window Y Position R/W)
-pub const WX:   u16 = 0xFF4B; // WX   (Window X Position R/W)
+pub const WX:   u16 = 0xFF4B; // WX   (Window X Position R/W) (Minus 7)
 //             FROM   0xFF4C
+pub const DMGS: u16 = 0xFF50; // DMG ROM Status
 //               TO   0xFFFE
 pub const IE:   u16 = 0xFFFF; // IE   (Interrupt Enable R/W)
 //                    0xFFFF     SPECIAL MEMORY ADDRESSES (END)

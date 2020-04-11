@@ -1,8 +1,26 @@
-/// The CPU Registers
+use super::instruction_set;
+use super::memory::Memory;
+
+/// # The CPU Registers
 ///
-/// The Flag Register Bits
+/// ## The Flag Register (F) Bits
+///
 /// 7   6   5   4   3   2   1   0
-/// Z   N   H   C   0   0   0   0
+/// Z   N   H  C Y  0   0   0   0
+///
+/// ### According to the "GAME BOY Programming Manual Version 1.1"
+///
+/// Consists of 4 flags that are set and reset according to the results of
+/// instruction execution. Flags CY and Z are tested by various conditional
+/// branch instructions.
+/// Z: Set to 1 when the result of an operation is 0; otherwise reset.
+/// N: Set to 1 following execution of the substruction instruction,
+/// regardless of the result.
+/// H: Set to 1 when an operation results in carrying from or borrowing to bit 3.
+/// CY: Set to 1 when an operation results in carrying from or borrowing to bit 7.
+///
+/// ### According to the "GAME BOY CPU Manual Version 1.01 by DP"
+///
 /// Z       Zero Flag
 ///         It is set when the result of a math operation is zero; or two
 ///         values match when using the CP instruction
@@ -15,7 +33,7 @@
 ///         It is set if a carry occurred from the lower nibble in the last
 ///         math operation
 ///
-/// C       Carry Flag (C)
+/// CY      Carry Flag (CY)
 ///         It is set if a carry occurred from the last math operation;
 ///         or if the register A is the smaller value when executing the CP
 ///         instruction
@@ -46,23 +64,33 @@
 /// |-----------|
 ///
 pub struct CPURegisters {
-    r_a: u8,
+    pub r_a: u8,
     /// Flag Register
-    r_f: u8,
-    r_b: u8,
-    r_c: u8,
-    r_d: u8,
-    r_e: u8,
-    r_h: u8,
-    r_l: u8,
+    pub r_f: u8,
+    pub r_b: u8,
+    pub r_c: u8,
+    pub r_d: u8,
+    pub r_e: u8,
+    pub r_h: u8,
+    pub r_l: u8,
     /// Stack Pointer Register
-    r_sp: u16,
+    pub stack_pointer: u16,
     /// Program Counter Register
-    r_pc: u16,
+    program_counter: u16,
+    // Memory Address Register (MAR)
+    address_register: u16,
+    // Memory Data Register (MDR)
+    data_register: u8,
+    // Current Instruction Register
+    instruction_register: u8,
 }
 
 pub struct CPU {
-    registers: CPURegisters,
+    pub registers: CPURegisters,
+    // Interrupt Master Enable Flag (IME)
+    pub interruption_enabled: bool,
+    pub stopped: bool,
+    pub halted: bool,
 }
 
 impl CPU {
@@ -77,12 +105,18 @@ impl CPU {
             r_e: 0x00,
             r_h: 0x00,
             r_l: 0x00,
-            r_sp: 0x0000,
-            r_pc: 0x0000,
+            stack_pointer: 0x0000,
+            program_counter: 0x0000,
+            address_register: 0x0000,
+            data_register: 0x00,
+            instruction_register: 0x00,
         };
 
         CPU {
             registers: registers,
+            interruption_enabled: true,
+            stopped: false,
+            halted: false,
         }
     }
 
@@ -95,23 +129,48 @@ impl CPU {
         self.registers.r_e = 0xD8;
         self.registers.r_h = 0x01;
         self.registers.r_l = 0x4D;
-        self.registers.r_sp = 0xFFFE;
-        self.registers.r_pc = 0x0100;
+        self.registers.stack_pointer = 0xFFFE;
+        self.registers.program_counter = 0x0000;
+        self.registers.address_register = 0x0000;
+        self.registers.data_register = 0x00;
+        self.registers.instruction_register = 0x00;
     }
 
-    /// This ignates the fetch–decode–execute cycle (or instruction cycle)
-    pub fn start(&mut self) {
-        // 'cycle: {
-        //     Fetch the instruction in the memory
-        //         Memory Address Register <- from the PC register
-        //         Memory Data Register <- Loads the data from the memory
-        //         Current Instruction Register <- Copy from the MDR (Memory Data Register)
-        //     Decode
-        //         Check what instruction should be executed
-        //     Execute
+    /// This represents the fetch–decode–execute cycle (or instruction cycle).
+    pub fn cycle(&mut self, mut memory: Memory) {
+        // Fetch the instruction in the memory
+        //     Memory Address Register (MAR) <- from the PC register
+        //     Memory Data Register (MDR) <- Loads the data from the memory
+        //     Current Instruction Register (CIR) <- Copy from the MDR (Memory Data Register)
+        self.registers.address_register = self.registers.program_counter;
+        self.registers.data_register = memory.fetch(self.registers.address_register);
+        self.registers.instruction_register = self.registers.data_register;
+        // Decode
+        //     Check what instruction should be executed
+        // Execute
+
+        let cycles = instruction_set::execute(self, &mut memory, self.registers.instruction_register);
         //     Interruption Handler
-        //     Restart from 'cycle
-        // }
+    }
+
+    /// Used to fetch operands for a given instruction.
+    pub fn fetch_operand(&mut self, memory: &mut Memory) -> u8 {
+        self.registers.program_counter += 1;
+        self.registers.address_register += self.registers.program_counter;
+        self.registers.data_register = memory.fetch(self.registers.address_register);
+        self.registers.data_register
+    }
+
+    pub fn fetch_data(&mut self, memory: &mut Memory, address: u16) -> u8 {
+        self.registers.address_register = address;
+        self.registers.data_register = memory.fetch(self.registers.address_register);
+        self.registers.data_register
+    }
+
+    pub fn write_data(&mut self, memory: &mut Memory, address: u16, word: u8) {
+        self.registers.address_register = address;
+        self.registers.data_register = word;
+        memory.write(address, word);
     }
 
 }

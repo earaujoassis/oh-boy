@@ -1,5 +1,5 @@
 [package]
-name = "gameboy-emulator"
+name = "gameboy_emulator"
 version = "0.1.0"
 authors = ["Ewerton Carlos Assis <earaujoassis@gmail.com>"]
 description = "GameBoy emulator written in Rust"
