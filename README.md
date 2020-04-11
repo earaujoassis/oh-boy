@@ -25,4 +25,5 @@ Please take a look at [/issues](https://github.com/earaujoassis/gameboy-emulator
 
 "GAME BOY" and "NINTENDO" are trademarks of NINTENDO OF AMERICA, INC. This current project
 has the sole purpose of testing and studying Computer Organization and Architecture. The
-code here presented is licensed under the MIT License. Copyright &copy; Ewerton Carlos Assis.
+code here presented is licensed under the [MIT License](http://earaujoassis.mit-license.org/).
+Copyright &copy; Ewerton Carlos Assis.
