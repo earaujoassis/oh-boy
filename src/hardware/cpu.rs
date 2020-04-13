@@ -76,7 +76,7 @@ pub struct CPURegisters {
     /// Stack Pointer Register
     pub stack_pointer: u16,
     /// Program Counter Register
-    program_counter: u16,
+    pub program_counter: u16,
     // Memory Address Register (MAR)
     address_register: u16,
     // Memory Data Register (MDR)
@@ -145,19 +145,23 @@ impl CPU {
         self.registers.address_register = self.registers.program_counter;
         self.registers.data_register = memory.fetch(self.registers.address_register);
         self.registers.instruction_register = self.registers.data_register;
+        // The PC is set to point to the next instruction or operand. This is
+        // necessary for all jumps/calls instructions
+        self.registers.program_counter += 1;
         // Decode
         //     Check what instruction should be executed
         // Execute
-
         let cycles = instruction_set::execute(self, &mut memory, self.registers.instruction_register);
         //     Interruption Handler
     }
 
     /// Used to fetch operands for a given instruction.
     pub fn fetch_operand(&mut self, memory: &mut Memory) -> u8 {
-        self.registers.program_counter += 1;
+        // The PC is already pointing to the operand
         self.registers.address_register += self.registers.program_counter;
         self.registers.data_register = memory.fetch(self.registers.address_register);
+        // The PC is set to point to the next instruction or operand
+        self.registers.program_counter += 1;
         self.registers.data_register
     }
 
