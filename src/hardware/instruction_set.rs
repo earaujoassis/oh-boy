@@ -13,11 +13,7 @@ use super::bit_operations;
 pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
     match opcode {
         /* NOP  */ 0x00 => { 1 },
-        /* STOP */ 0x10 => {
-            cpu.fetch_operand(memory);
-            cpu.stopped = true;
-            1
-        },
+        /* STOP */ 0x10 => { cpu.fetch_operand(memory); cpu.stopped = true; 1 },
         /* HALT */ 0x76 => { cpu.halted = true; 1 },
         /* DI   */ 0xF3 => { cpu.interruption_enabled = false; 1 },
         /* EI   */ 0xFB => { cpu.interruption_enabled = true; 1 },
@@ -177,8 +173,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             2
         },
         /* ADD HL,BC */ 0x09 => {
-            let d16_bc = bit_operations::join_words(cpu.registers.r_b as u16, cpu.registers.r_c as u16, 8) + 1;
-            let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8) + 1;
+            let d16_bc = bit_operations::join_words(cpu.registers.r_b as u16, cpu.registers.r_c as u16, 8);
+            let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
             let d16 = d16_hl + d16_bc;
             let carry_from_11th_bit_h = if d16 & 0xF800 > 1 { 0x20 } else { 0x00 };
             let carry_from_15th_bit_c = if d16 & 0x8000 > 1 { 0x10 } else { 0x00 };
@@ -189,8 +185,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             2
         },
         /* ADD HL,DE */ 0x19 => {
-            let d16_de = bit_operations::join_words(cpu.registers.r_d as u16, cpu.registers.r_e as u16, 8) + 1;
-            let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8) + 1;
+            let d16_de = bit_operations::join_words(cpu.registers.r_d as u16, cpu.registers.r_e as u16, 8);
+            let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
             let d16 = d16_hl + d16_de;
             let carry_from_11th_bit_h = if d16 & 0xF800 > 1 { 0x20 } else { 0x00 };
             let carry_from_15th_bit_c = if d16 & 0x8000 > 1 { 0x10 } else { 0x00 };
@@ -201,7 +197,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             2
         },
         /* ADD HL,HL */ 0x29 => {
-            let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8) + 1;
+            let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
             let d16 = d16_hl + d16_hl; // Explicitly 2 * d16_hl;
             let carry_from_11th_bit_h = if d16 & 0xF800 > 1 { 0x20 } else { 0x00 };
             let carry_from_15th_bit_c = if d16 & 0x8000 > 1 { 0x10 } else { 0x00 };
@@ -213,7 +209,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         },
         /* ADD HL,SP */ 0x39 => {
             let d16_sp = cpu.registers.stack_pointer;
-            let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8) + 1;
+            let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
             let d16 = d16_hl + d16_sp;
             let carry_from_11th_bit_h = if d16 & 0xF800 > 1 { 0x20 } else { 0x00 };
             let carry_from_15th_bit_c = if d16 & 0x8000 > 1 { 0x10 } else { 0x00 };
@@ -613,6 +609,265 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             cpu.write_data(memory, cpu.registers.stack_pointer, bit_operations::lsb(cpu.registers.program_counter, 8));
             cpu.registers.program_counter = a16;
             4
+        },
+        /* LDH (a8),A */ 0xE0 => {
+            let a8 = cpu.fetch_operand(memory);
+            let a16 = 0xFF00 + (a8 as u16);
+            cpu.write_data(memory, a16, cpu.registers.r_a);
+            3
+        },
+        /* LDH A,(a8) */ 0xF0 => {
+            let a8 = cpu.fetch_operand(memory);
+            let a16 = 0xFF00 + (a8 as u16);
+            cpu.registers.r_a = cpu.fetch_data(memory, a16);
+            3
+        },
+        /* LD (C),A */ 0xE2 => {
+            let a16 = 0xFF00 + (cpu.registers.r_c as u16);
+            cpu.write_data(memory, a16, cpu.registers.r_a);
+            2
+        },
+        /* LD A,(C) */ 0xF2 => {
+            let a16 = 0xFF00 + (cpu.registers.r_c as u16);
+            cpu.registers.r_a = cpu.fetch_data(memory, a16);
+            2
+        },
+        /* LD (a16),A */ 0xEA => {
+            let lsb = cpu.fetch_operand(memory);
+            let msb = cpu.fetch_operand(memory);
+            let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
+            cpu.write_data(memory, a16, cpu.registers.r_a);
+            4
+        },
+        /* LD A,(a16) */ 0xFA => {
+            let lsb = cpu.fetch_operand(memory);
+            let msb = cpu.fetch_operand(memory);
+            let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
+            cpu.registers.r_a = cpu.fetch_data(memory, a16);
+            4
+        },
+        /* LD B,B */ 0x40 => { cpu.registers.r_b = cpu.registers.r_b; 1 },
+        /* LD B,C */ 0x41 => { cpu.registers.r_b = cpu.registers.r_c; 1 },
+        /* LD B,D */ 0x42 => { cpu.registers.r_b = cpu.registers.r_d; 1 },
+        /* LD B,E */ 0x43 => { cpu.registers.r_b = cpu.registers.r_e; 1 },
+        /* LD B,H */ 0x44 => { cpu.registers.r_b = cpu.registers.r_h; 1 },
+        /* LD B,L */ 0x45 => { cpu.registers.r_b = cpu.registers.r_l; 1 },
+        /* LD B,(HL) */ 0x46 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            cpu.registers.r_b = d8;
+            2
+        },
+        /* LD B,A */ 0x47 => { cpu.registers.r_b = cpu.registers.r_a; 1 },
+        /* LD C,B */ 0x48 => { cpu.registers.r_c = cpu.registers.r_b; 1 },
+        /* LD C,C */ 0x49 => { cpu.registers.r_c = cpu.registers.r_c; 1 },
+        /* LD C,D */ 0x4A => { cpu.registers.r_c = cpu.registers.r_d; 1 },
+        /* LD C,E */ 0x4B => { cpu.registers.r_c = cpu.registers.r_e; 1 },
+        /* LD C,H */ 0x4C => { cpu.registers.r_c = cpu.registers.r_h; 1 },
+        /* LD C,L */ 0x4D => { cpu.registers.r_c = cpu.registers.r_l; 1 },
+        /* LD C,(HL) */ 0x4E => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            cpu.registers.r_c = d8;
+            2
+        },
+        /* LD C,A */ 0x4F => { cpu.registers.r_c = cpu.registers.r_a; 1 },
+        /* LD D,B */ 0x50 => { cpu.registers.r_d = cpu.registers.r_b; 1 },
+        /* LD D,C */ 0x51 => { cpu.registers.r_d = cpu.registers.r_c; 1 },
+        /* LD D,D */ 0x52 => { cpu.registers.r_d = cpu.registers.r_d; 1 },
+        /* LD D,E */ 0x53 => { cpu.registers.r_d = cpu.registers.r_e; 1 },
+        /* LD D,H */ 0x54 => { cpu.registers.r_d = cpu.registers.r_h; 1 },
+        /* LD D,L */ 0x55 => { cpu.registers.r_d = cpu.registers.r_l; 1 },
+        /* LD D,(HL) */ 0x56 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            cpu.registers.r_d = d8;
+            2
+        },
+        /* LD D,A */ 0x57 => { cpu.registers.r_d = cpu.registers.r_a; 1 },
+        /* LD E,B */ 0x58 => { cpu.registers.r_e = cpu.registers.r_b; 1 },
+        /* LD E,C */ 0x59 => { cpu.registers.r_e = cpu.registers.r_c; 1 },
+        /* LD E,D */ 0x5A => { cpu.registers.r_e = cpu.registers.r_d; 1 },
+        /* LD E,E */ 0x5B => { cpu.registers.r_e = cpu.registers.r_e; 1 },
+        /* LD E,H */ 0x5C => { cpu.registers.r_e = cpu.registers.r_h; 1 },
+        /* LD E,L */ 0x5D => { cpu.registers.r_e = cpu.registers.r_l; 1 },
+        /* LD E,(HL) */ 0x5E => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            cpu.registers.r_e = d8;
+            2
+        },
+        /* LD E,A */ 0x5F => { cpu.registers.r_e = cpu.registers.r_a; 1 },
+        /* LD H,B */ 0x60 => { cpu.registers.r_h = cpu.registers.r_b; 1 },
+        /* LD H,C */ 0x61 => { cpu.registers.r_h = cpu.registers.r_c; 1 },
+        /* LD H,D */ 0x62 => { cpu.registers.r_h = cpu.registers.r_d; 1 },
+        /* LD H,E */ 0x63 => { cpu.registers.r_h = cpu.registers.r_e; 1 },
+        /* LD H,H */ 0x64 => { cpu.registers.r_h = cpu.registers.r_h; 1 },
+        /* LD H,L */ 0x65 => { cpu.registers.r_h = cpu.registers.r_l; 1 },
+        /* LD H,(HL) */ 0x66 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            cpu.registers.r_h = d8;
+            2
+        },
+        /* LD H,A */ 0x67 => { cpu.registers.r_h = cpu.registers.r_a; 1 },
+        /* LD L,B */ 0x68 => { cpu.registers.r_l = cpu.registers.r_b; 1 },
+        /* LD L,C */ 0x69 => { cpu.registers.r_l = cpu.registers.r_c; 1 },
+        /* LD L,D */ 0x6A => { cpu.registers.r_l = cpu.registers.r_d; 1 },
+        /* LD L,E */ 0x6B => { cpu.registers.r_l = cpu.registers.r_e; 1 },
+        /* LD L,H */ 0x6C => { cpu.registers.r_l = cpu.registers.r_h; 1 },
+        /* LD L,L */ 0x6D => { cpu.registers.r_l = cpu.registers.r_l; 1 },
+        /* LD L,(HL) */ 0x6E => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            cpu.registers.r_l = d8;
+            2
+        },
+        /* LD L,A */ 0x6F => { cpu.registers.r_l = cpu.registers.r_a; 1 },
+        /* LD (HL),B */ 0x70 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            cpu.write_data(memory, a16_hl, cpu.registers.r_b);
+            2
+        },
+        /* LD (HL),C */ 0x71 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            cpu.write_data(memory, a16_hl, cpu.registers.r_c);
+            2
+        },
+        /* LD (HL),D */ 0x72 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            cpu.write_data(memory, a16_hl, cpu.registers.r_d);
+            2
+        },
+        /* LD (HL),E */ 0x73 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            cpu.write_data(memory, a16_hl, cpu.registers.r_e);
+            2
+        },
+        /* LD (HL),H */ 0x74 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            cpu.write_data(memory, a16_hl, cpu.registers.r_h);
+            2
+        },
+        /* LD (HL),L */ 0x75 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            cpu.write_data(memory, a16_hl, cpu.registers.r_l);
+            2
+        },
+        /* LD (HL),A */ 0x77 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            cpu.write_data(memory, a16_hl, cpu.registers.r_a);
+            2
+        },
+        /* LD A,B */ 0x78 => { cpu.registers.r_a = cpu.registers.r_b; 1 },
+        /* LD A,C */ 0x79 => { cpu.registers.r_a = cpu.registers.r_c; 1 },
+        /* LD A,D */ 0x7A => { cpu.registers.r_a = cpu.registers.r_d; 1 },
+        /* LD A,E */ 0x7B => { cpu.registers.r_a = cpu.registers.r_e; 1 },
+        /* LD A,H */ 0x7C => { cpu.registers.r_a = cpu.registers.r_h; 1 },
+        /* LD A,L */ 0x7D => { cpu.registers.r_a = cpu.registers.r_l; 1 },
+        /* LD A,(HL) */ 0x7E => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            cpu.registers.r_a = d8;
+            2
+        },
+        /* LD A,A */ 0x7F => { cpu.registers.r_a = cpu.registers.r_a; 1 },
+        /* LD (BC),A */ 0x02 => {
+            let a16_bc = bit_operations::join_words(cpu.registers.r_b as u16, cpu.registers.r_c as u16, 8);
+            cpu.write_data(memory, a16_bc, cpu.registers.r_a);
+            2
+        },
+        /* LD (DE),A */ 0x12 => {
+            let a16_de = bit_operations::join_words(cpu.registers.r_d as u16, cpu.registers.r_e as u16, 8);
+            cpu.write_data(memory, a16_de, cpu.registers.r_a);
+            2
+        },
+        /* LD (HL+),A */ 0x22 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            cpu.write_data(memory, a16_hl, cpu.registers.r_a);
+            let d16 = a16_hl + 1;
+            cpu.registers.r_h = bit_operations::msb(d16, 8);
+            cpu.registers.r_l = bit_operations::lsb(d16, 8);
+            2
+        },
+        /* LD (HL-),A */ 0x32 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            cpu.write_data(memory, a16_hl, cpu.registers.r_a);
+            let d16 = a16_hl - 1;
+            cpu.registers.r_h = bit_operations::msb(d16, 8);
+            cpu.registers.r_l = bit_operations::lsb(d16, 8);
+            2
+        },
+        /* LD B,d8 */ 0x06 => {
+            let d8 = cpu.fetch_operand(memory);
+            cpu.registers.r_b = d8;
+            2
+        },
+        /* LD D,d8 */ 0x16 => {
+            let d8 = cpu.fetch_operand(memory);
+            cpu.registers.r_d = d8;
+            2
+        },
+        /* LD H,d8 */ 0x26 => {
+            let d8 = cpu.fetch_operand(memory);
+            cpu.registers.r_h = d8;
+            2
+        },
+        /* LD (HL),d8 */ 0x36 => {
+            let d8 = cpu.fetch_operand(memory);
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            cpu.write_data(memory, a16_hl, d8);
+            3
+        },
+        /* LD A,(BC) */ 0x0A => {
+            let a16_bc = bit_operations::join_words(cpu.registers.r_b as u16, cpu.registers.r_c as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_bc);
+            cpu.registers.r_a = d8;
+            2
+        },
+        /* LD A,(DE) */ 0x1A => {
+            let a16_de = bit_operations::join_words(cpu.registers.r_d as u16, cpu.registers.r_e as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_de);
+            cpu.registers.r_a = d8;
+            2
+        },
+        /* LD A,(HL+) */ 0x2A => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            cpu.registers.r_a = d8;
+            let d16 = a16_hl + 1;
+            cpu.registers.r_h = bit_operations::msb(d16, 8);
+            cpu.registers.r_l = bit_operations::lsb(d16, 8);
+            2
+        },
+        /* LD A,(HL-) */ 0x3A => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            cpu.registers.r_a = d8;
+            let d16 = a16_hl - 1;
+            cpu.registers.r_h = bit_operations::msb(d16, 8);
+            cpu.registers.r_l = bit_operations::lsb(d16, 8);
+            2
+        },
+        /* LD C,d8 */ 0x0E => {
+            let d8 = cpu.fetch_operand(memory);
+            cpu.registers.r_c = d8;
+            2
+        },
+        /* LD E,d8 */ 0x1E => {
+            let d8 = cpu.fetch_operand(memory);
+            cpu.registers.r_e = d8;
+            2
+        },
+        /* LD L,d8 */ 0x2E => {
+            let d8 = cpu.fetch_operand(memory);
+            cpu.registers.r_l = d8;
+            2
+        },
+        /* LD A,d8 */ 0x3E => {
+            let d8 = cpu.fetch_operand(memory);
+            cpu.registers.r_a = d8;
+            2
         },
         _ => panic!("Opcode unknown: ${:02X}", opcode)
     }
