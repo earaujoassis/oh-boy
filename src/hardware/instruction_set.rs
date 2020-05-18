@@ -130,12 +130,15 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         },
         /* LD HL,SP+r8 */ 0xF8 => {
             let r8 = cpu.fetch_operand(memory);
-            let d16 = (cpu.registers.stack_pointer + (r8 as u16)) as u16;
-            let carry_from_11th_bit_h = if d16 & 0xF800 > 1 { 0x20 } else { 0x00 };
-            let carry_from_15th_bit_c = if d16 & 0x8000 > 1 { 0x10 } else { 0x00 };
+            let sp = cpu.registers.stack_pointer;
+            let d16 = sp.wrapping_add(r8 as u16) as u16;
+            // let zero_flag = 0x0000; -> this is implied, so we're not adding this
+            // let subtract_flag = 0x0000; -> this is implied, so we're not adding this
+            let half_carry_flag = if (d16 & 0xF) < (sp & 0xF) { 0x20 } else { 0x00 };
+            let carry_flag = if (d16 & 0xFF) < (sp & 0xFF) { 0x10 } else { 0x00 };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
-            cpu.registers.r_f = (carry_from_11th_bit_h | carry_from_15th_bit_c) as u8;
+            cpu.registers.r_f = (half_carry_flag | carry_flag) as u8;
             3
         },
         /* LD SP,HL */ 0xF9 => {
@@ -175,48 +178,52 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         /* ADD HL,BC */ 0x09 => {
             let d16_bc = bit_operations::join_words(cpu.registers.r_b as u16, cpu.registers.r_c as u16, 8);
             let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
-            let d16 = d16_hl + d16_bc;
-            let carry_from_11th_bit_h = if d16 & 0xF800 > 1 { 0x20 } else { 0x00 };
-            let carry_from_15th_bit_c = if d16 & 0x8000 > 1 { 0x10 } else { 0x00 };
-            let keep_z_flag = cpu.registers.r_f & 0x80;
+            let d16 = d16_hl.wrapping_add(d16_bc);
+            let zero_flag = cpu.registers.r_f & 0x80; // we're maitaining its value
+            // let subtract_flag = 0x0000; -> this is implied, so we're not adding this
+            let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_bc & 0xFFF)) & 0x1000) != 0 { 0x20 } else { 0x00 };
+            let carry_flag = if d16_hl > 0xFFFF - d16_bc { 0x10 } else { 0x00 };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
-            cpu.registers.r_f = (keep_z_flag | carry_from_11th_bit_h | carry_from_15th_bit_c) as u8;
+            cpu.registers.r_f = (zero_flag | half_carry_flag | carry_flag) as u8;
             2
         },
         /* ADD HL,DE */ 0x19 => {
             let d16_de = bit_operations::join_words(cpu.registers.r_d as u16, cpu.registers.r_e as u16, 8);
             let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
-            let d16 = d16_hl + d16_de;
-            let carry_from_11th_bit_h = if d16 & 0xF800 > 1 { 0x20 } else { 0x00 };
-            let carry_from_15th_bit_c = if d16 & 0x8000 > 1 { 0x10 } else { 0x00 };
-            let keep_z_flag = cpu.registers.r_f & 0x80;
+            let d16 = d16_hl.wrapping_add(d16_de);
+            let zero_flag = cpu.registers.r_f & 0x80; // we're maitaining its value
+            // let subtract_flag = 0x0000; -> this is implied, so we're not adding this
+            let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_de & 0xFFF)) & 0x1000) != 0 { 0x20 } else { 0x00 };
+            let carry_flag = if d16_hl > 0xFFFF - d16_de { 0x10 } else { 0x00 };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
-            cpu.registers.r_f = (keep_z_flag | carry_from_11th_bit_h | carry_from_15th_bit_c) as u8;
+            cpu.registers.r_f = (zero_flag | half_carry_flag | carry_flag) as u8;
             2
         },
         /* ADD HL,HL */ 0x29 => {
             let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
-            let d16 = d16_hl + d16_hl; // Explicitly 2 * d16_hl;
-            let carry_from_11th_bit_h = if d16 & 0xF800 > 1 { 0x20 } else { 0x00 };
-            let carry_from_15th_bit_c = if d16 & 0x8000 > 1 { 0x10 } else { 0x00 };
-            let keep_z_flag = cpu.registers.r_f & 0x80;
+            let d16 = d16_hl.wrapping_add(d16_hl); // Explicitly 2 * d16_hl;
+            let zero_flag = cpu.registers.r_f & 0x80; // we're maitaining its value
+            // let subtract_flag = 0x0000; -> this is implied, so we're not adding this
+            let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_hl & 0xFFF)) & 0x1000) != 0 { 0x20 } else { 0x00 };
+            let carry_flag = if d16_hl > 0xFFFF - d16_hl { 0x10 } else { 0x00 };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
-            cpu.registers.r_f = (keep_z_flag | carry_from_11th_bit_h | carry_from_15th_bit_c) as u8;
+            cpu.registers.r_f = (zero_flag | half_carry_flag | carry_flag) as u8;
             2
         },
         /* ADD HL,SP */ 0x39 => {
             let d16_sp = cpu.registers.stack_pointer;
             let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
-            let d16 = d16_hl + d16_sp;
-            let carry_from_11th_bit_h = if d16 & 0xF800 > 1 { 0x20 } else { 0x00 };
-            let carry_from_15th_bit_c = if d16 & 0x8000 > 1 { 0x10 } else { 0x00 };
-            let keep_z_flag = cpu.registers.r_f & 0x80;
+            let d16 = d16_hl.wrapping_add(d16_sp);
+            let zero_flag = cpu.registers.r_f & 0x80; // we're maitaining its value
+            // let subtract_flag = 0x0000; -> this is implied, so we're not adding this
+            let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_sp & 0xFFF)) & 0x1000) != 0 { 0x20 } else { 0x00 };
+            let carry_flag = if d16_hl > 0xFFFF - d16_sp { 0x10 } else { 0x00 };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
-            cpu.registers.r_f = (keep_z_flag | carry_from_11th_bit_h | carry_from_15th_bit_c) as u8;
+            cpu.registers.r_f = (zero_flag | half_carry_flag | carry_flag) as u8;
             2
         },
         /* DEC BC */ 0x0B => {
@@ -249,11 +256,14 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         },
         /* ADD SP,r8 */ 0xE8 => {
             let r8 = cpu.fetch_operand(memory);
-            let d16 = cpu.registers.stack_pointer + (r8 as u16);
-            let carry_from_11th_bit_h = if d16 & 0xF800 > 1 { 0x20 } else { 0x00 };
-            let carry_from_15th_bit_c = if d16 & 0x8000 > 1 { 0x10 } else { 0x00 };
+            let sp = cpu.registers.stack_pointer;
+            let d16 = sp.wrapping_add(r8 as u16);
+            // let zero_flag = 0x0000; -> this is implied, so we're not adding this
+            // let subtract_flag = 0x0000; -> this is implied, so we're not adding this
+            let half_carry_flag = if (d16 & 0xF) < (sp & 0xF) { 0x20 } else { 0x00 };
+            let carry_flag = if (d16 & 0xFF) < (sp & 0xFF) { 0x10 } else { 0x00 };
             cpu.registers.stack_pointer = d16;
-            cpu.registers.r_f = (carry_from_11th_bit_h | carry_from_15th_bit_c) as u8;
+            cpu.registers.r_f = (half_carry_flag | carry_flag) as u8;
             4
         },
         /* JR Z,r8 */ 0x28 => {
