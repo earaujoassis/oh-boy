@@ -2,6 +2,7 @@ use super::cpu::CPU;
 use super::memory::Memory;
 use super::memory_map;
 use super::bit_operations;
+use super::arithmetic;
 
 /// This function represents the instruction set executor within the CPU.
 /// It receives an 8bit/1byte opcode and checks if argument bytes/bits
@@ -879,6 +880,20 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             cpu.registers.r_a = d8;
             2
         },
+        /* INC B */ 0x04 => { cpu.registers.r_b = arithmetic::increment(cpu, cpu.registers.r_b); 1 },
+        /* INC C */ 0x0C => { cpu.registers.r_c = arithmetic::increment(cpu, cpu.registers.r_c); 1 },
+        /* INC D */ 0x14 => { cpu.registers.r_d = arithmetic::increment(cpu, cpu.registers.r_d); 1 },
+        /* INC E */ 0x1C => { cpu.registers.r_e = arithmetic::increment(cpu, cpu.registers.r_e); 1 },
+        /* INC H */ 0x24 => { cpu.registers.r_h = arithmetic::increment(cpu, cpu.registers.r_h); 1 },
+        /* INC L */ 0x2C => { cpu.registers.r_l = arithmetic::increment(cpu, cpu.registers.r_l); 1 },
+        /* INC (HL) */ 0x34 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            let result_d8 = arithmetic::increment(cpu, d8);
+            cpu.write_data(memory, a16_hl, result_d8);
+            3
+        },
+        /* INC A */ 0x3C => { cpu.registers.r_a = arithmetic::increment(cpu, cpu.registers.r_a); 1 },
         _ => panic!("Opcode unknown: ${:02X}", opcode)
     }
 }
