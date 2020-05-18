@@ -1,3 +1,7 @@
+; This code may be copyrighted. It was made available as a mean of learning and sharing knowledge
+; It was obtained through the following web address: https://gist.github.com/drhelius/6063288
+; If you're the author/copyright holder, please let me know if you want me to remove this code.
+
 	LD SP,$fffe		; $0000  Setup Stack
 
 	XOR A			; $0003  Zero the memory from $8000-$9FFF (VRAM)
@@ -166,7 +170,3 @@ Addr_00F4:
 
 	LD A,$01		; $00fc
 	LD ($FF00+$50),A	; $00fe	;turn off DMG rom
-
-; This code may be copyrighted. It was made available as a mean of learning and sharing knowledge
-; It was obtained through the following web address: https://gist.github.com/drhelius/6063288
-; If you're the author/copyright holder, please let me know if you want me to remove this code.
