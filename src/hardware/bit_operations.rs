@@ -4,8 +4,8 @@ use super::flags;
 /// 4bits (full word size is 8bits)
 pub fn swap_nibbles(op: u16, nibble_size: u8) -> u16 {
     match nibble_size {
-        8 => ((op & 0x00FF) << nibble_size | (op & 0xFF00) >> nibble_size),
-        4 => ((op & 0x0F)   << nibble_size | (op & 0xF0)   >> nibble_size),
+        8 => (((op & 0x00FF) << nibble_size | (op & 0xFF00) >> nibble_size)) & 0xFFFF,
+        4 => (((op & 0x0F)   << nibble_size | (op & 0xF0)   >> nibble_size)) & 0x00FF,
         _ => op
     }
 }
@@ -67,6 +67,37 @@ pub fn rotate_right_carry(op: u8, register_flags: u8) -> (u8, u8) {
     // let subtract_flag = flags::RESET; -> this is implied; reset
     // let half_carry_flag = flags::RESET; -> this is implied; reset
     let carry_flag = if b0 == 1 { flags::CARRY } else { flags::RESET };
+    let flags = (zero_flag | carry_flag) as u8;
+    (d8, flags)
+}
+
+pub fn shift_left(op: u8) -> (u8, u8) {
+    let b7 = op >> 7;
+    let d8 = (op << 1) & 0xFF;
+    let zero_flag = if d8 == 0x00 { flags::ZERO } else { flags::RESET };
+    // let subtract_flag = flags::RESET; -> this is implied; reset
+    // let half_carry_flag = flags::RESET; -> this is implied; reset
+    let carry_flag = if b7 == 1 { flags::CARRY } else { flags::RESET };
+    let flags = (zero_flag | carry_flag) as u8;
+    (d8, flags)
+}
+
+pub fn shift_right_reset(op: u8) -> (u8, u8) {
+    let d8 = (op >> 1) & 0xFF;
+    let zero_flag = if d8 == 0x00 { flags::ZERO } else { flags::RESET };
+    // let subtract_flag = flags::RESET; -> this is implied; reset
+    // let half_carry_flag = flags::RESET; -> this is implied; reset
+    let carry_flag = if (op & 0x01) == 1 { flags::CARRY } else { flags::RESET };
+    let flags = (zero_flag | carry_flag) as u8;
+    (d8, flags)
+}
+
+pub fn shift_right(op: u8) -> (u8, u8) {
+    let d8 = ((op >> 1) | (op & 0x80)) & 0xFF;
+    let zero_flag = if d8 == 0x00 { flags::ZERO } else { flags::RESET };
+    // let subtract_flag = flags::RESET; -> this is implied; reset
+    // let half_carry_flag = flags::RESET; -> this is implied; reset
+    let carry_flag = if (op & 0x01) == 1 { flags::CARRY } else { flags::RESET };
     let flags = (zero_flag | carry_flag) as u8;
     (d8, flags)
 }

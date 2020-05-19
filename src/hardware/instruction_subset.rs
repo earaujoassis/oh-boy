@@ -1,5 +1,6 @@
 use super::cpu::CPU;
 use super::memory::Memory;
+use super::flags;
 use super::bit_operations;
 
 /// This function represents the instruction subset executor within the 0xCB prefix.
@@ -201,6 +202,206 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         },
         /* RR A */ 0x1F => {
             let (register_data, register_flags) = bit_operations::rotate_right(cpu.registers.r_a);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_a = register_data;
+            2
+        },
+        /* SLA B */ 0x20 => {
+            let (register_data, register_flags) = bit_operations::shift_left(cpu.registers.r_b);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_b = register_data;
+            2
+        },
+        /* SLA C */ 0x21 => {
+            let (register_data, register_flags) = bit_operations::shift_left(cpu.registers.r_c);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_c = register_data;
+            2
+        },
+        /* SLA D */ 0x22 => {
+            let (register_data, register_flags) = bit_operations::shift_left(cpu.registers.r_d);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_d = register_data;
+            2
+        },
+        /* SLA E */ 0x23 => {
+            let (register_data, register_flags) = bit_operations::shift_left(cpu.registers.r_e);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_e = register_data;
+            2
+        },
+        /* SLA H */ 0x24 => {
+            let (register_data, register_flags) = bit_operations::shift_left(cpu.registers.r_h);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_h = register_data;
+            2
+        },
+        /* SLA L */ 0x25 => {
+            let (register_data, register_flags) = bit_operations::shift_left(cpu.registers.r_l);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_l = register_data;
+            2
+        },
+        /* SLA (HL) */ 0x26 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            let (n8, register_flags) = bit_operations::shift_left(d8);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.write_data(memory, a16_hl, n8);
+            4
+        },
+        /* SLA A */ 0x27 => {
+            let (register_data, register_flags) = bit_operations::shift_left(cpu.registers.r_a);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_a = register_data;
+            2
+        },
+        /* SRA B */ 0x28 => {
+            let (register_data, register_flags) = bit_operations::shift_right(cpu.registers.r_b);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_b = register_data;
+            2
+        },
+        /* SRA C */ 0x29 => {
+            let (register_data, register_flags) = bit_operations::shift_right(cpu.registers.r_c);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_c = register_data;
+            2
+        },
+        /* SRA D */ 0x2A => {
+            let (register_data, register_flags) = bit_operations::shift_right(cpu.registers.r_d);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_d = register_data;
+            2
+        },
+        /* SRA E */ 0x2B => {
+            let (register_data, register_flags) = bit_operations::shift_right(cpu.registers.r_e);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_e = register_data;
+            2
+        },
+        /* SRA H */ 0x2C => {
+            let (register_data, register_flags) = bit_operations::shift_right(cpu.registers.r_h);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_h = register_data;
+            2
+        },
+        /* SRA L */ 0x2D => {
+            let (register_data, register_flags) = bit_operations::shift_right(cpu.registers.r_l);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_l = register_data;
+            2
+        },
+        /* SRA (HL) */ 0x2E => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            let (n8, register_flags) = bit_operations::shift_right(d8);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.write_data(memory, a16_hl, n8);
+            4
+        },
+        /* SRA A */ 0x2F => {
+            let (register_data, register_flags) = bit_operations::shift_right(cpu.registers.r_a);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_a = register_data;
+            2
+        },
+        /* SWAP B */ 0x30 => {
+            let register_data = bit_operations::swap_nibbles(cpu.registers.r_b as u16, 4) as u8;
+            cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
+            cpu.registers.r_b = register_data;
+            2
+        },
+        /* SWAP C */ 0x31 => {
+            let register_data = bit_operations::swap_nibbles(cpu.registers.r_c as u16, 4) as u8;
+            cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
+            cpu.registers.r_c = register_data;
+            2
+        },
+        /* SWAP D */ 0x32 => {
+            let register_data = bit_operations::swap_nibbles(cpu.registers.r_d as u16, 4) as u8;
+            cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
+            cpu.registers.r_d = register_data;
+            2
+        },
+        /* SWAP E */ 0x33 => {
+            let register_data = bit_operations::swap_nibbles(cpu.registers.r_e as u16, 4) as u8;
+            cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
+            cpu.registers.r_e = register_data;
+            2
+        },
+        /* SWAP H */ 0x34 => {
+            let register_data = bit_operations::swap_nibbles(cpu.registers.r_h as u16, 4) as u8;
+            cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
+            cpu.registers.r_h = register_data;
+            2
+        },
+        /* SWAP L */ 0x35 => {
+            let register_data = bit_operations::swap_nibbles(cpu.registers.r_l as u16, 4) as u8;
+            cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
+            cpu.registers.r_l = register_data;
+            2
+        },
+        /* SWAP (HL) */ 0x36 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            let n8 = bit_operations::swap_nibbles(d8 as u16, 4) as u8;
+            cpu.registers.r_f = if n8 == 0 { flags::ZERO } else { flags::RESET };
+            cpu.write_data(memory, a16_hl, n8);
+            4
+        },
+        /* SWAP A */ 0x37 => {
+            let register_data = bit_operations::swap_nibbles(cpu.registers.r_a as u16, 4) as u8;
+            cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
+            cpu.registers.r_a = register_data;
+            2
+        },
+        /* SRL B */ 0x38 => {
+            let (register_data, register_flags) = bit_operations::shift_right_reset(cpu.registers.r_b);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_b = register_data;
+            2
+        },
+        /* SRL C */ 0x39 => {
+            let (register_data, register_flags) = bit_operations::shift_right_reset(cpu.registers.r_c);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_c = register_data;
+            2
+        },
+        /* SRL D */ 0x3A => {
+            let (register_data, register_flags) = bit_operations::shift_right_reset(cpu.registers.r_d);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_d = register_data;
+            2
+        },
+        /* SRL E */ 0x3B => {
+            let (register_data, register_flags) = bit_operations::shift_right_reset(cpu.registers.r_e);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_e = register_data;
+            2
+        },
+        /* SRL H */ 0x3C => {
+            let (register_data, register_flags) = bit_operations::shift_right_reset(cpu.registers.r_h);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_h = register_data;
+            2
+        },
+        /* SRL L */ 0x3D => {
+            let (register_data, register_flags) = bit_operations::shift_right_reset(cpu.registers.r_l);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.registers.r_l = register_data;
+            2
+        },
+        /* SRL (HL) */ 0x3E => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            let (n8, register_flags) = bit_operations::shift_right_reset(d8);
+            cpu.registers.r_f = register_flags as u8;
+            cpu.write_data(memory, a16_hl, n8);
+            4
+        },
+        /* SRL A */ 0x3F => {
+            let (register_data, register_flags) = bit_operations::shift_right_reset(cpu.registers.r_a);
             cpu.registers.r_f = register_flags as u8;
             cpu.registers.r_a = register_data;
             2

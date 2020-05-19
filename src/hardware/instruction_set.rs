@@ -1098,10 +1098,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             cpu.registers.r_a = register_data;
             1
         },
-        /* PREFIX CB */ 0xCB => {
-            let opcode = cpu.fetch_operand(memory);
-            instruction_subset::execute(cpu, memory, opcode)
-        },
+        /* PREFIX CB */ 0xCB => { let opcode = cpu.fetch_operand(memory); instruction_subset::execute(cpu, memory, opcode) },
         _ => panic!("Opcode unknown: ${:02X}", opcode)
     }
 }
