@@ -3,6 +3,7 @@ use super::memory::Memory;
 use super::bit_operations;
 use super::flags;
 use super::arithmetic;
+use super::instruction_subset;
 
 /// This function represents the instruction set executor within the CPU.
 /// It receives an 8bit/1byte opcode and checks if argument bytes/bits
@@ -133,8 +134,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let r8 = cpu.fetch_operand(memory);
             let sp = cpu.registers.stack_pointer;
             let d16 = sp.wrapping_add(r8 as u16) as u16;
-            // let zero_flag = flags::RESET; -> this is implied, so we're not adding this
-            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this
+            // let zero_flag = flags::RESET; -> this is implied
+            // let subtract_flag = flags::RESET; -> this is implied
             let half_carry_flag = if (d16 & 0xF) < (sp & 0xF) { flags::HALF_CARRY } else { flags::RESET };
             let carry_flag = if (d16 & 0xFF) < (sp & 0xFF) { flags::CARRY } else { flags::RESET };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
@@ -181,7 +182,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
             let d16 = d16_hl.wrapping_add(d16_bc);
             let zero_flag = cpu.registers.r_f & flags::ZERO; // keep its value
-            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this
+            // let subtract_flag = flags::RESET; -> this is implied
             let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_bc & 0xFFF)) & 0x1000) != 0 { flags::HALF_CARRY } else { flags::RESET };
             let carry_flag = if d16_hl > 0xFFFF - d16_bc { flags::CARRY } else { flags::RESET };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
@@ -194,7 +195,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
             let d16 = d16_hl.wrapping_add(d16_de);
             let zero_flag = cpu.registers.r_f & flags::ZERO; // keep its value
-            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this
+            // let subtract_flag = flags::RESET; -> this is implied
             let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_de & 0xFFF)) & 0x1000) != 0 { flags::HALF_CARRY } else { flags::RESET };
             let carry_flag = if d16_hl > 0xFFFF - d16_de { flags::CARRY } else { flags::RESET };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
@@ -206,7 +207,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
             let d16 = d16_hl.wrapping_add(d16_hl); // Explicitly 2 * d16_hl;
             let zero_flag = cpu.registers.r_f & flags::ZERO; // keep its value
-            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this
+            // let subtract_flag = flags::RESET; -> this is implied
             let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_hl & 0xFFF)) & 0x1000) != 0 { flags::HALF_CARRY } else { flags::RESET };
             let carry_flag = if d16_hl > 0xFFFF - d16_hl { flags::CARRY } else { flags::RESET };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
@@ -219,7 +220,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
             let d16 = d16_hl.wrapping_add(d16_sp);
             let zero_flag = cpu.registers.r_f & flags::ZERO; // keep its value
-            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this
+            // let subtract_flag = flags::RESET; -> this is implied
             let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_sp & 0xFFF)) & 0x1000) != 0 { flags::HALF_CARRY } else { flags::RESET };
             let carry_flag = if d16_hl > 0xFFFF - d16_sp { flags::CARRY } else { flags::RESET };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
@@ -259,8 +260,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let r8 = cpu.fetch_operand(memory);
             let sp = cpu.registers.stack_pointer;
             let d16 = sp.wrapping_add(r8 as u16);
-            // let zero_flag = flags::RESET; -> this is implied, so we're not adding this
-            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this
+            // let zero_flag = flags::RESET; -> this is implied
+            // let subtract_flag = flags::RESET; -> this is implied
             let half_carry_flag = if (d16 & 0xF) < (sp & 0xF) { flags::HALF_CARRY } else { flags::RESET };
             let carry_flag = if (d16 & 0xFF) < (sp & 0xFF) { flags::CARRY } else { flags::RESET };
             cpu.registers.stack_pointer = d16;
@@ -1042,7 +1043,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             }
             let zero_flag = if register_data == 0 { flags::ZERO } else { flags::RESET };
             let subtract_flag = cpu.registers.r_f & flags::SUBTRACT; // keep its value
-            // let half_carry_flag = flags::RESET; -> this is implied, so we're not adding this; reset
+            // let half_carry_flag = flags::RESET; -> this is implied; reset
             let carry_flag = if adjust >= 0x60 { flags::CARRY } else { flags::RESET };
             cpu.registers.r_f = (zero_flag | subtract_flag | carry_flag) as u8;
             cpu.registers.r_a = register_data;
@@ -1059,31 +1060,45 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         },
         /* SCF */ 0x37 => {
             let zero_flag = cpu.registers.r_f & flags::ZERO; // keep its value
-            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this; reset
-            // let half_carry_flag = flags::RESET; -> this is implied, so we're not adding this; reset
+            // let subtract_flag = flags::RESET; -> this is implied; reset
+            // let half_carry_flag = flags::RESET; -> this is implied; reset
             let carry_flag = flags::CARRY; // -> this is set
             cpu.registers.r_f = (zero_flag | carry_flag) as u8;
             1
         },
         /* CCF */ 0x3F => {
             let zero_flag = cpu.registers.r_f & flags::ZERO; // keep its value
-            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this; reset
-            // let half_carry_flag = flags::RESET; -> this is implied, so we're not adding this; reset
+            // let subtract_flag = flags::RESET; -> this is implied; reset
+            // let half_carry_flag = flags::RESET; -> this is implied; reset
             let carry_flag = if ((cpu.registers.r_f & flags::CARRY) >> 4) == 1 { flags::RESET } else { flags::CARRY };
             cpu.registers.r_f = (zero_flag | carry_flag) as u8;
             1
         },
-
-        /* PREFIX CB */ 0xCB => {
-            let opcode = cpu.fetch_operand(memory);
-            subexecute(cpu, memory, opcode)
+        /* RLCA */ 0x07 => {
+            let (register_data, register_flags) = bit_operations::rotate_left_carry(cpu.registers.r_a, cpu.registers.r_f);
+            cpu.registers.r_f = (register_flags & flags::CARRY) as u8;
+            cpu.registers.r_a = register_data;
+            1
         },
+        /* RLA */ 0x17 => {
+            let (register_data, register_flags) = bit_operations::rotate_left(cpu.registers.r_a);
+            cpu.registers.r_f = (register_flags & flags::CARRY) as u8;
+            cpu.registers.r_a = register_data;
+            1
+        },
+        /* RRCA */ 0x0F => {
+            let (register_data, register_flags) = bit_operations::rotate_right_carry(cpu.registers.r_a, cpu.registers.r_f);
+            cpu.registers.r_f = (register_flags & flags::CARRY) as u8;
+            cpu.registers.r_a = register_data;
+            1
+        },
+        /* RRA */ 0x1F => {
+            let (register_data, register_flags) = bit_operations::rotate_right(cpu.registers.r_a);
+            cpu.registers.r_f = (register_flags & flags::CARRY) as u8;
+            cpu.registers.r_a = register_data;
+            1
+        },
+        /* PREFIX CB */ 0xCB => { let opcode = cpu.fetch_operand(memory); instruction_subset::execute(cpu, memory, opcode) },
         _ => panic!("Opcode unknown: ${:02X}", opcode)
-    }
-}
-
-fn subexecute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
-    match opcode {
-        _ => panic!("Opcode unknown within prefix 0xCB: ${:02X}", opcode)
     }
 }

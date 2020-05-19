@@ -4,6 +4,7 @@ pub mod memory;
 pub mod flags;
 pub mod arithmetic;
 pub mod bit_operations;
+pub mod instruction_subset;
 pub mod instruction_set;
 pub mod cpu;
 pub mod ppu;
