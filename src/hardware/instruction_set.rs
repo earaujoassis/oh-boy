@@ -3,6 +3,7 @@ use super::memory::Memory;
 use super::bit_operations;
 use super::flags;
 use super::arithmetic;
+use super::instruction_subset;
 
 /// This function represents the instruction set executor within the CPU.
 /// It receives an 8bit/1byte opcode and checks if argument bytes/bits
@@ -1076,14 +1077,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
 
         /* PREFIX CB */ 0xCB => {
             let opcode = cpu.fetch_operand(memory);
-            subexecute(cpu, memory, opcode)
+            instruction_subset::execute(cpu, memory, opcode)
         },
         _ => panic!("Opcode unknown: ${:02X}", opcode)
-    }
-}
-
-fn subexecute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
-    match opcode {
-        _ => panic!("Opcode unknown within prefix 0xCB: ${:02X}", opcode)
     }
 }
