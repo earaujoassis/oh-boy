@@ -1,7 +1,7 @@
 use super::cpu::CPU;
 use super::memory::Memory;
-use super::memory_map;
 use super::bit_operations;
+use super::flags;
 use super::arithmetic;
 
 /// This function represents the instruction set executor within the CPU.
@@ -133,10 +133,10 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let r8 = cpu.fetch_operand(memory);
             let sp = cpu.registers.stack_pointer;
             let d16 = sp.wrapping_add(r8 as u16) as u16;
-            // let zero_flag = 0x00; -> this is implied, so we're not adding this
-            // let subtract_flag = 0x00; -> this is implied, so we're not adding this
-            let half_carry_flag = if (d16 & 0xF) < (sp & 0xF) { 0x20 } else { 0x00 };
-            let carry_flag = if (d16 & 0xFF) < (sp & 0xFF) { 0x10 } else { 0x00 };
+            // let zero_flag = flags::RESET; -> this is implied, so we're not adding this
+            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this
+            let half_carry_flag = if (d16 & 0xF) < (sp & 0xF) { flags::HALF_CARRY } else { flags::RESET };
+            let carry_flag = if (d16 & 0xFF) < (sp & 0xFF) { flags::CARRY } else { flags::RESET };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
             cpu.registers.r_f = (half_carry_flag | carry_flag) as u8;
@@ -180,10 +180,10 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let d16_bc = bit_operations::join_words(cpu.registers.r_b as u16, cpu.registers.r_c as u16, 8);
             let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
             let d16 = d16_hl.wrapping_add(d16_bc);
-            let zero_flag = cpu.registers.r_f & 0x80; // we're maitaining its value
-            // let subtract_flag = 0x00; -> this is implied, so we're not adding this
-            let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_bc & 0xFFF)) & 0x1000) != 0 { 0x20 } else { 0x00 };
-            let carry_flag = if d16_hl > 0xFFFF - d16_bc { 0x10 } else { 0x00 };
+            let zero_flag = cpu.registers.r_f & flags::ZERO; // keep its value
+            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this
+            let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_bc & 0xFFF)) & 0x1000) != 0 { flags::HALF_CARRY } else { flags::RESET };
+            let carry_flag = if d16_hl > 0xFFFF - d16_bc { flags::CARRY } else { flags::RESET };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
             cpu.registers.r_f = (zero_flag | half_carry_flag | carry_flag) as u8;
@@ -193,10 +193,10 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let d16_de = bit_operations::join_words(cpu.registers.r_d as u16, cpu.registers.r_e as u16, 8);
             let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
             let d16 = d16_hl.wrapping_add(d16_de);
-            let zero_flag = cpu.registers.r_f & 0x80; // we're maitaining its value
-            // let subtract_flag = 0x00; -> this is implied, so we're not adding this
-            let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_de & 0xFFF)) & 0x1000) != 0 { 0x20 } else { 0x00 };
-            let carry_flag = if d16_hl > 0xFFFF - d16_de { 0x10 } else { 0x00 };
+            let zero_flag = cpu.registers.r_f & flags::ZERO; // keep its value
+            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this
+            let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_de & 0xFFF)) & 0x1000) != 0 { flags::HALF_CARRY } else { flags::RESET };
+            let carry_flag = if d16_hl > 0xFFFF - d16_de { flags::CARRY } else { flags::RESET };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
             cpu.registers.r_f = (zero_flag | half_carry_flag | carry_flag) as u8;
@@ -205,10 +205,10 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         /* ADD HL,HL */ 0x29 => {
             let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
             let d16 = d16_hl.wrapping_add(d16_hl); // Explicitly 2 * d16_hl;
-            let zero_flag = cpu.registers.r_f & 0x80; // we're maitaining its value
-            // let subtract_flag = 0x00; -> this is implied, so we're not adding this
-            let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_hl & 0xFFF)) & 0x1000) != 0 { 0x20 } else { 0x00 };
-            let carry_flag = if d16_hl > 0xFFFF - d16_hl { 0x10 } else { 0x00 };
+            let zero_flag = cpu.registers.r_f & flags::ZERO; // keep its value
+            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this
+            let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_hl & 0xFFF)) & 0x1000) != 0 { flags::HALF_CARRY } else { flags::RESET };
+            let carry_flag = if d16_hl > 0xFFFF - d16_hl { flags::CARRY } else { flags::RESET };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
             cpu.registers.r_f = (zero_flag | half_carry_flag | carry_flag) as u8;
@@ -218,10 +218,10 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let d16_sp = cpu.registers.stack_pointer;
             let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
             let d16 = d16_hl.wrapping_add(d16_sp);
-            let zero_flag = cpu.registers.r_f & 0x80; // we're maitaining its value
-            // let subtract_flag = 0x00; -> this is implied, so we're not adding this
-            let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_sp & 0xFFF)) & 0x1000) != 0 { 0x20 } else { 0x00 };
-            let carry_flag = if d16_hl > 0xFFFF - d16_sp { 0x10 } else { 0x00 };
+            let zero_flag = cpu.registers.r_f & flags::ZERO; // keep its value
+            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this
+            let half_carry_flag = if (((d16_hl & 0xFFF) + (d16_sp & 0xFFF)) & 0x1000) != 0 { flags::HALF_CARRY } else { flags::RESET };
+            let carry_flag = if d16_hl > 0xFFFF - d16_sp { flags::CARRY } else { flags::RESET };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
             cpu.registers.r_f = (zero_flag | half_carry_flag | carry_flag) as u8;
@@ -259,10 +259,10 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let r8 = cpu.fetch_operand(memory);
             let sp = cpu.registers.stack_pointer;
             let d16 = sp.wrapping_add(r8 as u16);
-            // let zero_flag = 0x00; -> this is implied, so we're not adding this
-            // let subtract_flag = 0x00; -> this is implied, so we're not adding this
-            let half_carry_flag = if (d16 & 0xF) < (sp & 0xF) { 0x20 } else { 0x00 };
-            let carry_flag = if (d16 & 0xFF) < (sp & 0xFF) { 0x10 } else { 0x00 };
+            // let zero_flag = flags::RESET; -> this is implied, so we're not adding this
+            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this
+            let half_carry_flag = if (d16 & 0xF) < (sp & 0xF) { flags::HALF_CARRY } else { flags::RESET };
+            let carry_flag = if (d16 & 0xFF) < (sp & 0xFF) { flags::CARRY } else { flags::RESET };
             cpu.registers.stack_pointer = d16;
             cpu.registers.r_f = (half_carry_flag | carry_flag) as u8;
             4
@@ -273,7 +273,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let r8 = cpu.fetch_operand(memory) as i8;
             // It is executed if Z == 1
             // Check if Z is 1
-            if ((cpu.registers.r_f & 0x80) >> 7) == 1 {
+            if ((cpu.registers.r_f & flags::ZERO) >> 7) == 1 {
                 cpu.registers.program_counter = cpu.registers.program_counter.wrapping_add(r8 as u16);
                 3
             } else {
@@ -286,7 +286,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let r8 = cpu.fetch_operand(memory) as i8;
             // It is executed if CY == 1
             // Check if CY is 1
-            if ((cpu.registers.r_f & 0x10) >> 4) == 1 {
+            if ((cpu.registers.r_f & flags::CARRY) >> 4) == 1 {
                 cpu.registers.program_counter = cpu.registers.program_counter.wrapping_add(r8 as u16);
                 3
             } else {
@@ -299,7 +299,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let r8 = cpu.fetch_operand(memory) as i8;
             // It is executed if Z == 0
             // Check if Z is 1 and then NOT it
-            if ((cpu.registers.r_f & 0x80) >> 7) != 1 {
+            if ((cpu.registers.r_f & flags::ZERO) >> 7) != 1 {
                 cpu.registers.program_counter = cpu.registers.program_counter.wrapping_add(r8 as u16);
                 3
             } else {
@@ -312,7 +312,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let r8 = cpu.fetch_operand(memory) as i8;
             // It is executed if CY == 0
             // Check if CY is 1 and then NOT it
-            if ((cpu.registers.r_f & 0x10) >> 4) != 1 {
+            if ((cpu.registers.r_f & flags::CARRY) >> 4) != 1 {
                 cpu.registers.program_counter = cpu.registers.program_counter.wrapping_add(r8 as u16);
                 3
             } else {
@@ -332,7 +332,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if Z == 1
             // Check if Z is 1
-            if ((cpu.registers.r_f & 0x80) >> 7) == 1 {
+            if ((cpu.registers.r_f & flags::ZERO) >> 7) == 1 {
                 cpu.registers.program_counter = a16;
                 4
             } else {
@@ -345,7 +345,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if CY == 1
             // Check if CY is 1
-            if ((cpu.registers.r_f & 0x10) >> 4) == 1 {
+            if ((cpu.registers.r_f & flags::CARRY) >> 4) == 1 {
                 cpu.registers.program_counter = a16;
                 4
             } else {
@@ -358,7 +358,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if Z == 0
             // Check if Z is 1 and then NOT it
-            if ((cpu.registers.r_f & 0x80) >> 7) != 1 {
+            if ((cpu.registers.r_f & flags::ZERO) >> 7) != 1 {
                 cpu.registers.program_counter = a16;
                 4
             } else {
@@ -371,7 +371,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if CY == 0
             // Check if CY is 1 and then NOT it
-            if ((cpu.registers.r_f & 0x10) >> 4) != 1 {
+            if ((cpu.registers.r_f & flags::CARRY) >> 4) != 1 {
                 cpu.registers.program_counter = a16;
                 4
             } else {
@@ -398,7 +398,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if Z == 1
             // Check if Z is 1
-            if ((cpu.registers.r_f & 0x80) >> 7) == 1 {
+            if ((cpu.registers.r_f & flags::ZERO) >> 7) == 1 {
                 cpu.registers.stack_pointer -= 1;
                 cpu.write_data(memory, cpu.registers.stack_pointer, bit_operations::msb(cpu.registers.program_counter, 8));
                 cpu.registers.stack_pointer -= 1;
@@ -415,7 +415,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if CY == 1
             // Check if CY is 1
-            if ((cpu.registers.r_f & 0x10) >> 4) == 1 {
+            if ((cpu.registers.r_f & flags::CARRY) >> 4) == 1 {
                 cpu.registers.stack_pointer -= 1;
                 cpu.write_data(memory, cpu.registers.stack_pointer, bit_operations::msb(cpu.registers.program_counter, 8));
                 cpu.registers.stack_pointer -= 1;
@@ -432,7 +432,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if Z == 0
             // Check if Z is 1 and then NOT it
-            if ((cpu.registers.r_f & 0x80) >> 7) != 1 {
+            if ((cpu.registers.r_f & flags::ZERO) >> 7) != 1 {
                 cpu.registers.stack_pointer -= 1;
                 cpu.write_data(memory, cpu.registers.stack_pointer, bit_operations::msb(cpu.registers.program_counter, 8));
                 cpu.registers.stack_pointer -= 1;
@@ -449,7 +449,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if CY == 0
             // Check if CY is 1 and then NOT it
-            if ((cpu.registers.r_f & 0x10) >> 4) != 1 {
+            if ((cpu.registers.r_f & flags::CARRY) >> 4) != 1 {
                 cpu.registers.stack_pointer -= 1;
                 cpu.write_data(memory, cpu.registers.stack_pointer, bit_operations::msb(cpu.registers.program_counter, 8));
                 cpu.registers.stack_pointer -= 1;
@@ -474,7 +474,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         /* RET Z */ 0xC8 => {
             // It is executed if Z == 1
             // Check if Z is 1
-            if ((cpu.registers.r_f & 0x80) >> 7) == 1 {
+            if ((cpu.registers.r_f & flags::ZERO) >> 7) == 1 {
                 let lsb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
                 cpu.registers.stack_pointer += 1;
                 let msb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
@@ -489,7 +489,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         /* RET C */ 0xD8 => {
             // It is executed if CY == 1
             // Check if CY is 1
-            if ((cpu.registers.r_f & 0x10) >> 4) == 1 {
+            if ((cpu.registers.r_f & flags::CARRY) >> 4) == 1 {
                 let lsb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
                 cpu.registers.stack_pointer += 1;
                 let msb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
@@ -504,7 +504,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         /* RET NZ */ 0xC0 => {
             // It is executed if Z == 0
             // Check if Z is 1 and then NOT it
-            if ((cpu.registers.r_f & 0x80) >> 7) != 1 {
+            if ((cpu.registers.r_f & flags::ZERO) >> 7) != 1 {
                 let lsb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
                 cpu.registers.stack_pointer += 1;
                 let msb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
@@ -519,7 +519,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         /* RET NC */ 0xD0 => {
             // It is executed if CY == 0
             // Check if CY is 1 and then NOT it
-            if ((cpu.registers.r_f & 0x10) >> 4) != 1 {
+            if ((cpu.registers.r_f & flags::CARRY) >> 4) != 1 {
                 let lsb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
                 cpu.registers.stack_pointer += 1;
                 let msb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
@@ -907,6 +907,110 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             cpu.write_data(memory, a16_hl, result_d8);
             3
         },
+        /* ADD A,B */ 0x80 => { let d8 = cpu.registers.r_b; arithmetic::add(cpu, d8); 2 },
+        /* ADD A,C */ 0x81 => { let d8 = cpu.registers.r_c; arithmetic::add(cpu, d8); 2 },
+        /* ADD A,D */ 0x82 => { let d8 = cpu.registers.r_d; arithmetic::add(cpu, d8); 2 },
+        /* ADD A,E */ 0x83 => { let d8 = cpu.registers.r_e; arithmetic::add(cpu, d8); 2 },
+        /* ADD A,H */ 0x84 => { let d8 = cpu.registers.r_h; arithmetic::add(cpu, d8); 2 },
+        /* ADD A,L */ 0x85 => { let d8 = cpu.registers.r_l; arithmetic::add(cpu, d8); 2 },
+        /* ADD A,(HL) */ 0x86 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            arithmetic::add(cpu, d8);
+            2
+        },
+        /* ADD A,A */ 0x87 => { let d8 = cpu.registers.r_a; arithmetic::add(cpu, d8); 2 },
+        /* ADC A,B */ 0x88 => { let d8 = cpu.registers.r_b; arithmetic::add_carry(cpu, d8); 2 },
+        /* ADC A,C */ 0x89 => { let d8 = cpu.registers.r_c; arithmetic::add_carry(cpu, d8); 2 },
+        /* ADC A,D */ 0x8A => { let d8 = cpu.registers.r_d; arithmetic::add_carry(cpu, d8); 2 },
+        /* ADC A,E */ 0x8B => { let d8 = cpu.registers.r_e; arithmetic::add_carry(cpu, d8); 2 },
+        /* ADC A,H */ 0x8C => { let d8 = cpu.registers.r_h; arithmetic::add_carry(cpu, d8); 2 },
+        /* ADC A,L */ 0x8D => { let d8 = cpu.registers.r_l; arithmetic::add_carry(cpu, d8); 2 },
+        /* ADC A,(HL) */ 0x8E => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            arithmetic::add_carry(cpu, d8);
+            2
+        },
+        /* ADC A,A */ 0x8F => { let d8 = cpu.registers.r_a; arithmetic::add_carry(cpu, d8); 2 },
+        /* SUB B */ 0x90 => { let d8 = cpu.registers.r_b; arithmetic::sub(cpu, d8); 2 },
+        /* SUB C */ 0x91 => { let d8 = cpu.registers.r_c; arithmetic::sub(cpu, d8); 2 },
+        /* SUB D */ 0x92 => { let d8 = cpu.registers.r_d; arithmetic::sub(cpu, d8); 2 },
+        /* SUB E */ 0x93 => { let d8 = cpu.registers.r_e; arithmetic::sub(cpu, d8); 2 },
+        /* SUB H */ 0x94 => { let d8 = cpu.registers.r_h; arithmetic::sub(cpu, d8); 2 },
+        /* SUB L */ 0x95 => { let d8 = cpu.registers.r_l; arithmetic::sub(cpu, d8); 2 },
+        /* SUB (HL) */ 0x96 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            arithmetic::sub(cpu, d8);
+            2
+        },
+        /* SUB A */ 0x97 => { let d8 = cpu.registers.r_a; arithmetic::sub(cpu, d8); 2 },
+        /* SBC A,B */ 0x98 => { let d8 = cpu.registers.r_b; arithmetic::sub_carry(cpu, d8); 2 },
+        /* SBC A,C */ 0x99 => { let d8 = cpu.registers.r_c; arithmetic::sub_carry(cpu, d8); 2 },
+        /* SBC A,D */ 0x9A => { let d8 = cpu.registers.r_d; arithmetic::sub_carry(cpu, d8); 2 },
+        /* SBC A,E */ 0x9B => { let d8 = cpu.registers.r_e; arithmetic::sub_carry(cpu, d8); 2 },
+        /* SBC A,H */ 0x9C => { let d8 = cpu.registers.r_h; arithmetic::sub_carry(cpu, d8); 2 },
+        /* SBC A,L */ 0x9D => { let d8 = cpu.registers.r_l; arithmetic::sub_carry(cpu, d8); 2 },
+        /* SBC A,(HL) */ 0x9E => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            arithmetic::sub_carry(cpu, d8);
+            2
+        },
+        /* SBC A,A */ 0x9F => { let d8 = cpu.registers.r_a; arithmetic::sub_carry(cpu, d8); 2 },
+        /* AND B */ 0xA0 => { let d8 = cpu.registers.r_b; arithmetic::and(cpu, d8); 2 },
+        /* AND C */ 0xA1 => { let d8 = cpu.registers.r_c; arithmetic::and(cpu, d8); 2 },
+        /* AND D */ 0xA2 => { let d8 = cpu.registers.r_d; arithmetic::and(cpu, d8); 2 },
+        /* AND E */ 0xA3 => { let d8 = cpu.registers.r_e; arithmetic::and(cpu, d8); 2 },
+        /* AND H */ 0xA4 => { let d8 = cpu.registers.r_h; arithmetic::and(cpu, d8); 2 },
+        /* AND L */ 0xA5 => { let d8 = cpu.registers.r_l; arithmetic::and(cpu, d8); 2 },
+        /* AND (HL) */ 0xA6 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            arithmetic::and(cpu, d8);
+            2
+        },
+        /* AND A */ 0xA7 => { let d8 = cpu.registers.r_a; arithmetic::and(cpu, d8); 2 },
+        /* XOR B */ 0xA8 => { let d8 = cpu.registers.r_b; arithmetic::xor(cpu, d8); 2 },
+        /* XOR C */ 0xA9 => { let d8 = cpu.registers.r_c; arithmetic::xor(cpu, d8); 2 },
+        /* XOR D */ 0xAA => { let d8 = cpu.registers.r_d; arithmetic::xor(cpu, d8); 2 },
+        /* XOR E */ 0xAB => { let d8 = cpu.registers.r_e; arithmetic::xor(cpu, d8); 2 },
+        /* XOR H */ 0xAC => { let d8 = cpu.registers.r_h; arithmetic::xor(cpu, d8); 2 },
+        /* XOR L */ 0xAD => { let d8 = cpu.registers.r_l; arithmetic::xor(cpu, d8); 2 },
+        /* XOR (HL) */ 0xAE => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            arithmetic::xor(cpu, d8);
+            2
+        },
+        /* XOR A */ 0xAF => { let d8 = cpu.registers.r_a; arithmetic::xor(cpu, d8); 2 },
+        /* OR B */ 0xB0 => { let d8 = cpu.registers.r_b; arithmetic::or(cpu, d8); 2 },
+        /* OR C */ 0xB1 => { let d8 = cpu.registers.r_c; arithmetic::or(cpu, d8); 2 },
+        /* OR D */ 0xB2 => { let d8 = cpu.registers.r_d; arithmetic::or(cpu, d8); 2 },
+        /* OR E */ 0xB3 => { let d8 = cpu.registers.r_e; arithmetic::or(cpu, d8); 2 },
+        /* OR H */ 0xB4 => { let d8 = cpu.registers.r_h; arithmetic::or(cpu, d8); 2 },
+        /* OR L */ 0xB5 => { let d8 = cpu.registers.r_l; arithmetic::or(cpu, d8); 2 },
+        /* OR (HL) */ 0xB6 => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            arithmetic::or(cpu, d8);
+            2
+        },
+        /* OR A */ 0xB7 => { let d8 = cpu.registers.r_a; arithmetic::or(cpu, d8); 2 },
+        /* CP B */ 0xB8 => { let d8 = cpu.registers.r_b; arithmetic::compare(cpu, d8); 2 },
+        /* CP C */ 0xB9 => { let d8 = cpu.registers.r_c; arithmetic::compare(cpu, d8); 2 },
+        /* CP D */ 0xBA => { let d8 = cpu.registers.r_d; arithmetic::compare(cpu, d8); 2 },
+        /* CP E */ 0xBB => { let d8 = cpu.registers.r_e; arithmetic::compare(cpu, d8); 2 },
+        /* CP H */ 0xBC => { let d8 = cpu.registers.r_h; arithmetic::compare(cpu, d8); 2 },
+        /* CP L */ 0xBD => { let d8 = cpu.registers.r_l; arithmetic::compare(cpu, d8); 2 },
+        /* CP (HL) */ 0xBE => {
+            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+            let d8 = cpu.fetch_data(memory, a16_hl);
+            arithmetic::compare(cpu, d8);
+            2
+        },
+        /* CP A */ 0xBF => { let d8 = cpu.registers.r_a; arithmetic::compare(cpu, d8); 2 },
         /* DEC A */ 0x3D => { cpu.registers.r_a = arithmetic::decrement(cpu, cpu.registers.r_a); 1 },
         /* ADD A,d8 */ 0xC6 => { let d8 = cpu.fetch_operand(memory); arithmetic::add(cpu, d8); 2 },
         /* ADC A,d8 */ 0xCE => { let d8 = cpu.fetch_operand(memory); arithmetic::add_carry(cpu, d8); 2 },
@@ -916,6 +1020,59 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         /* XOR d8 */ 0xEE => { let d8 = cpu.fetch_operand(memory); arithmetic::xor(cpu, d8); 2 },
         /* OR d8 */ 0xF6 => { let d8 = cpu.fetch_operand(memory); arithmetic::or(cpu, d8); 2 },
         /* CP d8 */ 0xFE => { let d8 = cpu.fetch_operand(memory); arithmetic::compare(cpu, d8); 2 },
+        /* DAA */ 0x27 => {
+            // credit to rboy and github.com/mattbruv
+            // this instruction is really poorly described throughout the docs I've obtained so far
+            // the best doc for this is the "GAME BOY Programming Manual Version 1.1" by Nintendo, Inc.
+            let mut register_data = cpu.registers.r_a;
+            let mut adjust = if ((cpu.registers.r_f & flags::CARRY) >> 4) == 1 { 0x60 } else { 0x00 };
+            if ((cpu.registers.r_f & flags::HALF_CARRY) >> 5) == 1 {
+                adjust = adjust | 0x06;
+            }
+            if ((cpu.registers.r_f & flags::SUBTRACT) >> 6) != 1 {
+                if register_data & 0x0F > 0x09 {
+                    adjust = adjust | 0x06;
+                }
+                if register_data > 0x99 {
+                    adjust = adjust | 0x60;
+                }
+                register_data = register_data.wrapping_add(adjust);
+            } else {
+                register_data = register_data.wrapping_sub(adjust);
+            }
+            let zero_flag = if register_data == 0 { flags::ZERO } else { flags::RESET };
+            let subtract_flag = cpu.registers.r_f & flags::SUBTRACT; // keep its value
+            // let half_carry_flag = flags::RESET; -> this is implied, so we're not adding this; reset
+            let carry_flag = if adjust >= 0x60 { flags::CARRY } else { flags::RESET };
+            cpu.registers.r_f = (zero_flag | subtract_flag | carry_flag) as u8;
+            cpu.registers.r_a = register_data;
+            1
+        },
+        /* CPL */ 0x2F => {
+            cpu.registers.r_a = !cpu.registers.r_a;
+            let zero_flag = cpu.registers.r_f & flags::ZERO; // keep its value
+            let subtract_flag = flags::SUBTRACT; // -> this is set
+            let half_carry_flag = flags::HALF_CARRY; // -> this is set
+            let carry_flag = cpu.registers.r_f & flags::CARRY; // keep its value
+            cpu.registers.r_f = (zero_flag | subtract_flag | half_carry_flag | carry_flag) as u8;
+            1
+        },
+        /* SCF */ 0x37 => {
+            let zero_flag = cpu.registers.r_f & flags::ZERO; // keep its value
+            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this; reset
+            // let half_carry_flag = flags::RESET; -> this is implied, so we're not adding this; reset
+            let carry_flag = flags::CARRY; // -> this is set
+            cpu.registers.r_f = (zero_flag | carry_flag) as u8;
+            1
+        },
+        /* CCF */ 0x3F => {
+            let zero_flag = cpu.registers.r_f & flags::ZERO; // keep its value
+            // let subtract_flag = flags::RESET; -> this is implied, so we're not adding this; reset
+            // let half_carry_flag = flags::RESET; -> this is implied, so we're not adding this; reset
+            let carry_flag = if ((cpu.registers.r_f & flags::CARRY) >> 4) == 1 { flags::RESET } else { flags::CARRY };
+            cpu.registers.r_f = (zero_flag | carry_flag) as u8;
+            1
+        },
 
         /* PREFIX CB */ 0xCB => {
             let opcode = cpu.fetch_operand(memory);
