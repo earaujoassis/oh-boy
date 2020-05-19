@@ -1075,47 +1075,27 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             1
         },
         /* RLCA */ 0x07 => {
-            let register_data = cpu.registers.r_a;
-            let b7 = register_data >> 7;
-            let d8 = ((register_data << 1) | ((cpu.registers.r_f & flags::CARRY) as u8)) & 0xFF;
-            // let zero_flag = flags::RESET; -> this is implied; reset
-            // let subtract_flag = flags::RESET; -> this is implied; reset
-            // let half_carry_flag = flags::RESET; -> this is implied; reset
-            let carry_flag = if b7 == 1 { flags::CARRY } else { flags::RESET };
-            cpu.registers.r_a = d8;
+            let (register_data, register_flags) = bit_operations::rotate_left_carry(cpu.registers.r_a, cpu.registers.r_f);
+            cpu.registers.r_f = (register_flags & flags::CARRY) as u8;
+            cpu.registers.r_a = register_data;
             1
         },
         /* RLA */ 0x17 => {
-            let register_data = cpu.registers.r_a;
-            let b7 = register_data >> 7;
-            let d8 = ((register_data << 1) | (register_data >> 7)) & 0xFF;
-            // let zero_flag = flags::RESET; -> this is implied; reset
-            // let subtract_flag = flags::RESET; -> this is implied; reset
-            // let half_carry_flag = flags::RESET; -> this is implied; reset
-            let carry_flag = if b7 == 1 { flags::CARRY } else { flags::RESET };
-            cpu.registers.r_a = d8;
+            let (register_data, register_flags) = bit_operations::rotate_left(cpu.registers.r_a);
+            cpu.registers.r_f = (register_flags & flags::CARRY) as u8;
+            cpu.registers.r_a = register_data;
             1
         },
         /* RRCA */ 0x0F => {
-            let register_data = cpu.registers.r_a;
-            let b0 = register_data & 0x01;
-            let d8 = ((register_data >> 1) | (((cpu.registers.r_f & flags::CARRY) as u8) << 7)) & 0xFF;
-            // let zero_flag = flags::RESET; -> this is implied; reset
-            // let subtract_flag = flags::RESET; -> this is implied; reset
-            // let half_carry_flag = flags::RESET; -> this is implied; reset
-            let carry_flag = if b0 == 1 { flags::CARRY } else { flags::RESET };
-            cpu.registers.r_a = d8;
+            let (register_data, register_flags) = bit_operations::rotate_right_carry(cpu.registers.r_a, cpu.registers.r_f);
+            cpu.registers.r_f = (register_flags & flags::CARRY) as u8;
+            cpu.registers.r_a = register_data;
             1
         },
         /* RRA */ 0x1F => {
-            let register_data = cpu.registers.r_a;
-            let b0 = register_data & 0x01;
-            let d8 = (register_data >> 1) & 0xFF;
-            // let zero_flag = flags::RESET; -> this is implied; reset
-            // let subtract_flag = flags::RESET; -> this is implied; reset
-            // let half_carry_flag = flags::RESET; -> this is implied; reset
-            let carry_flag = if b0 == 1 { flags::CARRY } else { flags::RESET };
-            cpu.registers.r_a = d8;
+            let (register_data, register_flags) = bit_operations::rotate_right(cpu.registers.r_a);
+            cpu.registers.r_f = (register_flags & flags::CARRY) as u8;
+            cpu.registers.r_a = register_data;
             1
         },
         /* PREFIX CB */ 0xCB => {
