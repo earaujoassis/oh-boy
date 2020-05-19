@@ -101,3 +101,49 @@ pub fn shift_right(op: u8) -> (u8, u8) {
     let flags = (zero_flag | carry_flag) as u8;
     (d8, flags)
 }
+
+pub fn bit(op: u8, bit: usize) -> u8 {
+    let is_set = match bit {
+        0 => 0x01 & op > 0,
+        1 => 0x02 & op > 0,
+        2 => 0x04 & op > 0,
+        3 => 0x08 & op > 0,
+        4 => 0x10 & op > 0,
+        5 => 0x20 & op > 0,
+        6 => 0x40 & op > 0,
+        7 => 0x80 & op > 0,
+        _ => false
+    };
+    if is_set {
+        return flags::HALF_CARRY as u8
+    }
+    (flags::ZERO | flags::HALF_CARRY) as u8
+}
+
+pub fn set(op: u8, bit: usize) -> u8 {
+    match bit {
+        0 => ((0x01 | op) & 0xFF) as u8,
+        1 => ((0x02 | op) & 0xFF) as u8,
+        2 => ((0x04 | op) & 0xFF) as u8,
+        3 => ((0x08 | op) & 0xFF) as u8,
+        4 => ((0x10 | op) & 0xFF) as u8,
+        5 => ((0x20 | op) & 0xFF) as u8,
+        6 => ((0x40 | op) & 0xFF) as u8,
+        7 => ((0x80 | op) & 0xFF) as u8,
+        _ => (op & 0xFF) as u8
+    }
+}
+
+pub fn reset(op: u8, bit: usize) -> u8 {
+    match bit {
+        0 => ((!(0x01 as u8) & op) & 0xFF) as u8,
+        1 => ((!(0x02 as u8) & op) & 0xFF) as u8,
+        2 => ((!(0x04 as u8) & op) & 0xFF) as u8,
+        3 => ((!(0x08 as u8) & op) & 0xFF) as u8,
+        4 => ((!(0x10 as u8) & op) & 0xFF) as u8,
+        5 => ((!(0x20 as u8) & op) & 0xFF) as u8,
+        6 => ((!(0x40 as u8) & op) & 0xFF) as u8,
+        7 => ((!(0x80 as u8) & op) & 0xFF) as u8,
+        _ => (op & 0xFF) as u8
+    }
+}

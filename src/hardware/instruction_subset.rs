@@ -406,6 +406,102 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             cpu.registers.r_a = register_data;
             2
         },
+        /* BIT b,r/(HL) */ 0x40..=0x7F => {
+            let mut cycle = 2;
+            let bit: usize = match (opcode >> 3) & 0xFF {
+                0x08 => 0,
+                0x09 => 1,
+                0x0A => 2,
+                0x0B => 3,
+                0x0C => 4,
+                0x0D => 5,
+                0x0E => 6,
+                0x0F => 7,
+                _ => panic!("Unrecognized bit position for the (0xCB) BIT opcode")
+            };
+            let d8: u8 = match (opcode << 5) & 0xFF {
+                0xE0 => cpu.registers.r_a,
+                0x00 => cpu.registers.r_b,
+                0x20 => cpu.registers.r_c,
+                0x40 => cpu.registers.r_d,
+                0x60 => cpu.registers.r_e,
+                0x80 => cpu.registers.r_h,
+                0xA0 => cpu.registers.r_l,
+                0xC0 => {
+                    cycle = 4;
+                    let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+                    cpu.fetch_data(memory, a16_hl)
+                },
+                _ => panic!("Unrecognized bit position for the (0xCB) BIT opcode")
+            };
+            let flags = bit_operations::bit(d8, bit);
+            cpu.registers.r_f = flags | (cpu.registers.r_f & flags::CARRY) as u8;
+            cycle
+        },
+        /* RES b,r/(HL) */ 0x80..=0xBF => {
+            let mut cycle = 2;
+            let bit: usize = match (opcode >> 3) & 0xFF {
+                0x10 => 0,
+                0x11 => 1,
+                0x12 => 2,
+                0x13 => 3,
+                0x14 => 4,
+                0x15 => 5,
+                0x16 => 6,
+                0x17 => 7,
+                _ => panic!("Unrecognized bit position for the (0xCB) RES opcode")
+            };
+            match (opcode << 5) & 0xFF {
+                0xE0 => cpu.registers.r_a = bit_operations::reset(cpu.registers.r_a, bit),
+                0x00 => cpu.registers.r_b = bit_operations::reset(cpu.registers.r_b, bit),
+                0x20 => cpu.registers.r_c = bit_operations::reset(cpu.registers.r_c, bit),
+                0x40 => cpu.registers.r_d = bit_operations::reset(cpu.registers.r_d, bit),
+                0x60 => cpu.registers.r_e = bit_operations::reset(cpu.registers.r_e, bit),
+                0x80 => cpu.registers.r_h = bit_operations::reset(cpu.registers.r_h, bit),
+                0xA0 => cpu.registers.r_l = bit_operations::reset(cpu.registers.r_l, bit),
+                0xC0 => {
+                    cycle = 4;
+                    let a16_hl: u16 = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+                    let d8: u8 = cpu.fetch_data(memory, a16_hl);
+                    let n8: u8 = bit_operations::reset(d8, bit);
+                    cpu.write_data(memory, a16_hl, n8);
+                },
+                _ => panic!("Unrecognized bit position for the (0xCB) RES opcode")
+            };
+            cycle
+        },
+        /* SET b,r/(HL) */ 0xC0..=0xFF => {
+            let mut cycle = 2;
+            let bit: usize = match (opcode >> 3) & 0xFF {
+                0x18 => 0,
+                0x19 => 1,
+                0x1A => 2,
+                0x1B => 3,
+                0x1C => 4,
+                0x1D => 5,
+                0x1E => 6,
+                0x1F => 7,
+                _ => panic!("Unrecognized bit position for the (0xCB) SET opcode")
+            };
+            match (opcode << 5) & 0xFF {
+                0xE0 => cpu.registers.r_a = bit_operations::set(cpu.registers.r_a, bit),
+                0x00 => cpu.registers.r_b = bit_operations::set(cpu.registers.r_b, bit),
+                0x20 => cpu.registers.r_c = bit_operations::set(cpu.registers.r_c, bit),
+                0x40 => cpu.registers.r_d = bit_operations::set(cpu.registers.r_d, bit),
+                0x60 => cpu.registers.r_e = bit_operations::set(cpu.registers.r_e, bit),
+                0x80 => cpu.registers.r_h = bit_operations::set(cpu.registers.r_h, bit),
+                0xA0 => cpu.registers.r_l = bit_operations::set(cpu.registers.r_l, bit),
+                0xC0 => {
+                    cycle = 4;
+                    let a16_hl: u16 = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+                    let d8: u8 = cpu.fetch_data(memory, a16_hl);
+                    let n8: u8 = bit_operations::set(d8, bit);
+                    cpu.write_data(memory, a16_hl, n8);
+                },
+                _ => panic!("Unrecognized bit position for the (0xCB) SET opcode")
+            };
+            cycle
+        },
         _ => panic!("Opcode unknown within prefix 0xCB: ${:02X}", opcode)
     }
 }
