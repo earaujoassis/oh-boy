@@ -908,6 +908,14 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             3
         },
         /* DEC A */ 0x3D => { cpu.registers.r_a = arithmetic::decrement(cpu, cpu.registers.r_a); 1 },
+        /* ADD A,d8 */ 0xC6 => { let d8 = cpu.fetch_operand(memory); arithmetic::add(cpu, d8); 2 },
+        /* ADC A,d8 */ 0xCE => { let d8 = cpu.fetch_operand(memory); arithmetic::add_carry(cpu, d8); 2 },
+        /* SUB d8 */ 0xD6 => { let d8 = cpu.fetch_operand(memory); arithmetic::sub(cpu, d8); 2 },
+        /* SBC A,d8 */ 0xDE => { let d8 = cpu.fetch_operand(memory); arithmetic::sub_carry(cpu, d8); 2 },
+        /* AND d8 */ 0xE6 => { let d8 = cpu.fetch_operand(memory); arithmetic::and(cpu, d8); 2 },
+        /* XOR d8 */ 0xEE => { let d8 = cpu.fetch_operand(memory); arithmetic::xor(cpu, d8); 2 },
+        /* OR d8 */ 0xF6 => { let d8 = cpu.fetch_operand(memory); arithmetic::or(cpu, d8); 2 },
+        /* CP d8 */ 0xFE => { let d8 = cpu.fetch_operand(memory); arithmetic::compare(cpu, d8); 2 },
 
         /* PREFIX CB */ 0xCB => {
             let opcode = cpu.fetch_operand(memory);
