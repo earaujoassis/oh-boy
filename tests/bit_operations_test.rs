@@ -44,4 +44,18 @@ mod tests {
         assert_eq!(lsb(0x88F1, 8), 0xF1);
         assert_eq!(lsb(0x8001, 8), 0x01);
     }
+
+    #[test]
+    fn test_set() {
+        assert_eq!(set(0x80, 3), 0x88);
+        assert_eq!(set(0x10, 7), 0x90);
+        assert_eq!(set(0x08, 3), 0x08);
+    }
+
+    #[test]
+    fn test_reset() {
+        assert_eq!(reset(0x80, 7), 0x00);
+        assert_eq!(reset(0x08, 3), 0x00);
+        assert_eq!(reset(0x10, 3), 0x10);
+    }
 }
