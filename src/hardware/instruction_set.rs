@@ -908,6 +908,17 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             3
         },
         /* DEC A */ 0x3D => { cpu.registers.r_a = arithmetic::decrement(cpu, cpu.registers.r_a); 1 },
+
+        /* PREFIX CB */ 0xCB => {
+            let opcode = cpu.fetch_operand(memory);
+            subexecute(cpu, memory, opcode)
+        },
         _ => panic!("Opcode unknown: ${:02X}", opcode)
+    }
+}
+
+fn subexecute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
+    match opcode {
+        _ => panic!("Opcode unknown within prefix 0xCB: ${:02X}", opcode)
     }
 }

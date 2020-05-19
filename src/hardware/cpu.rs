@@ -156,6 +156,8 @@ impl CPU {
     }
 
     /// Used to fetch operands for a given instruction.
+    /// It keeps the program counter in a safe state (the instruction set executor doens't have to change it,
+    /// exceptionally when the opcode states that).
     pub fn fetch_operand(&mut self, memory: &mut Memory) -> u8 {
         // The PC is already pointing to the operand
         self.registers.address_register += self.registers.program_counter;
