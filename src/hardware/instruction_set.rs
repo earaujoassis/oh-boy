@@ -133,7 +133,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         /* LD HL,SP+r8 */ 0xF8 => {
             let r8 = cpu.fetch_operand(memory);
             let sp = cpu.registers.stack_pointer;
-            let d16 = sp.wrapping_add(r8 as u16) as u16;
+            let d16 = (sp as i16).wrapping_add(r8 as i16) as u16;
             // let zero_flag = flags::RESET; -> this is implied
             // let subtract_flag = flags::RESET; -> this is implied
             let half_carry_flag = if (d16 & 0xF) < (sp & 0xF) { flags::HALF_CARRY } else { flags::RESET };
@@ -274,8 +274,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let r8 = cpu.fetch_operand(memory) as i8;
             // It is executed if Z == 1
             // Check if Z is 1
-            if ((cpu.registers.r_f & flags::ZERO) >> 7) == 1 {
-                cpu.registers.program_counter = cpu.registers.program_counter.wrapping_add(r8 as u16);
+            if (cpu.registers.r_f & flags::ZERO) > 0 {
+                cpu.registers.program_counter = (cpu.registers.program_counter as i16).wrapping_add(r8 as i16) as u16;
                 3
             } else {
                 2
@@ -287,8 +287,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let r8 = cpu.fetch_operand(memory) as i8;
             // It is executed if CY == 1
             // Check if CY is 1
-            if ((cpu.registers.r_f & flags::CARRY) >> 4) == 1 {
-                cpu.registers.program_counter = cpu.registers.program_counter.wrapping_add(r8 as u16);
+            if (cpu.registers.r_f & flags::CARRY) > 0 {
+                cpu.registers.program_counter = (cpu.registers.program_counter as i16).wrapping_add(r8 as i16) as u16;
                 3
             } else {
                 2
@@ -299,9 +299,9 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             // so we don't have to change that ourselves since DMG uses the same representation
             let r8 = cpu.fetch_operand(memory) as i8;
             // It is executed if Z == 0
-            // Check if Z is 1 and then NOT it
-            if ((cpu.registers.r_f & flags::ZERO) >> 7) != 1 {
-                cpu.registers.program_counter = cpu.registers.program_counter.wrapping_add(r8 as u16);
+            // Check if Z is 0
+            if (cpu.registers.r_f & flags::ZERO) == 0x00 {
+                cpu.registers.program_counter = (cpu.registers.program_counter as i16).wrapping_add(r8 as i16) as u16;
                 3
             } else {
                 2
@@ -312,9 +312,9 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             // so we don't have to change that ourselves since DMG uses the same representation
             let r8 = cpu.fetch_operand(memory) as i8;
             // It is executed if CY == 0
-            // Check if CY is 1 and then NOT it
-            if ((cpu.registers.r_f & flags::CARRY) >> 4) != 1 {
-                cpu.registers.program_counter = cpu.registers.program_counter.wrapping_add(r8 as u16);
+            // Check if CY is 0
+            if (cpu.registers.r_f & flags::CARRY) == 0x00 {
+                cpu.registers.program_counter = (cpu.registers.program_counter as i16).wrapping_add(r8 as i16) as u16;
                 3
             } else {
                 2
@@ -324,7 +324,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             // Rust represents integer numbers using the two's complement represenation,
             // so we don't have to change that ourselves since DMG uses the same representation
             let r8 = cpu.fetch_operand(memory) as i8;
-            cpu.registers.program_counter = cpu.registers.program_counter.wrapping_add(r8 as u16);
+            cpu.registers.program_counter = (cpu.registers.program_counter as i16).wrapping_add(r8 as i16) as u16;
             3
         },
         /* JP Z,a16 */ 0xCA => {
@@ -333,7 +333,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if Z == 1
             // Check if Z is 1
-            if ((cpu.registers.r_f & flags::ZERO) >> 7) == 1 {
+            if (cpu.registers.r_f & flags::ZERO) > 0 {
                 cpu.registers.program_counter = a16;
                 4
             } else {
@@ -346,7 +346,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if CY == 1
             // Check if CY is 1
-            if ((cpu.registers.r_f & flags::CARRY) >> 4) == 1 {
+            if (cpu.registers.r_f & flags::CARRY) > 0 {
                 cpu.registers.program_counter = a16;
                 4
             } else {
@@ -358,8 +358,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let msb = cpu.fetch_operand(memory);
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if Z == 0
-            // Check if Z is 1 and then NOT it
-            if ((cpu.registers.r_f & flags::ZERO) >> 7) != 1 {
+            // Check if Z is 0
+            if (cpu.registers.r_f & flags::ZERO) == 0x00 {
                 cpu.registers.program_counter = a16;
                 4
             } else {
@@ -371,8 +371,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let msb = cpu.fetch_operand(memory);
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if CY == 0
-            // Check if CY is 1 and then NOT it
-            if ((cpu.registers.r_f & flags::CARRY) >> 4) != 1 {
+            // Check if CY is 0
+            if (cpu.registers.r_f & flags::CARRY) == 0x00 {
                 cpu.registers.program_counter = a16;
                 4
             } else {
@@ -399,7 +399,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if Z == 1
             // Check if Z is 1
-            if ((cpu.registers.r_f & flags::ZERO) >> 7) == 1 {
+            if (cpu.registers.r_f & flags::ZERO) > 0 {
                 cpu.registers.stack_pointer -= 1;
                 cpu.write_data(memory, cpu.registers.stack_pointer, bit_operations::msb(cpu.registers.program_counter, 8));
                 cpu.registers.stack_pointer -= 1;
@@ -416,7 +416,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if CY == 1
             // Check if CY is 1
-            if ((cpu.registers.r_f & flags::CARRY) >> 4) == 1 {
+            if (cpu.registers.r_f & flags::CARRY) > 0 {
                 cpu.registers.stack_pointer -= 1;
                 cpu.write_data(memory, cpu.registers.stack_pointer, bit_operations::msb(cpu.registers.program_counter, 8));
                 cpu.registers.stack_pointer -= 1;
@@ -432,8 +432,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let msb = cpu.fetch_operand(memory);
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if Z == 0
-            // Check if Z is 1 and then NOT it
-            if ((cpu.registers.r_f & flags::ZERO) >> 7) != 1 {
+            // Check if Z is 0
+            if (cpu.registers.r_f & flags::ZERO) == 0x00 {
                 cpu.registers.stack_pointer -= 1;
                 cpu.write_data(memory, cpu.registers.stack_pointer, bit_operations::msb(cpu.registers.program_counter, 8));
                 cpu.registers.stack_pointer -= 1;
@@ -449,8 +449,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let msb = cpu.fetch_operand(memory);
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
             // It is executed if CY == 0
-            // Check if CY is 1 and then NOT it
-            if ((cpu.registers.r_f & flags::CARRY) >> 4) != 1 {
+            // Check if CY is 0
+            if (cpu.registers.r_f & flags::CARRY) == 0x00 {
                 cpu.registers.stack_pointer -= 1;
                 cpu.write_data(memory, cpu.registers.stack_pointer, bit_operations::msb(cpu.registers.program_counter, 8));
                 cpu.registers.stack_pointer -= 1;
@@ -475,7 +475,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         /* RET Z */ 0xC8 => {
             // It is executed if Z == 1
             // Check if Z is 1
-            if ((cpu.registers.r_f & flags::ZERO) >> 7) == 1 {
+            if (cpu.registers.r_f & flags::ZERO) > 0 {
                 let lsb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
                 cpu.registers.stack_pointer += 1;
                 let msb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
@@ -490,7 +490,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         /* RET C */ 0xD8 => {
             // It is executed if CY == 1
             // Check if CY is 1
-            if ((cpu.registers.r_f & flags::CARRY) >> 4) == 1 {
+            if (cpu.registers.r_f & flags::CARRY) > 0 {
                 let lsb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
                 cpu.registers.stack_pointer += 1;
                 let msb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
@@ -504,8 +504,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         },
         /* RET NZ */ 0xC0 => {
             // It is executed if Z == 0
-            // Check if Z is 1 and then NOT it
-            if ((cpu.registers.r_f & flags::ZERO) >> 7) != 1 {
+            // Check if Z is 0
+            if (cpu.registers.r_f & flags::ZERO) == 0x00 {
                 let lsb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
                 cpu.registers.stack_pointer += 1;
                 let msb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
@@ -519,8 +519,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         },
         /* RET NC */ 0xD0 => {
             // It is executed if CY == 0
-            // Check if CY is 1 and then NOT it
-            if ((cpu.registers.r_f & flags::CARRY) >> 4) != 1 {
+            // Check if CY is 0
+            if (cpu.registers.r_f & flags::CARRY) == 0x00 {
                 let lsb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
                 cpu.registers.stack_pointer += 1;
                 let msb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
