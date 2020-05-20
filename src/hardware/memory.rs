@@ -1,5 +1,6 @@
 use std::io::prelude::*;
 use std::fs::File;
+use std::env;
 
 use super::memory_map;
 use super::cartridge_types;
@@ -18,6 +19,7 @@ pub struct RAM {
 pub struct Memory {
     rom: ROM,
     ram: RAM,
+    debug_mode: bool,
 }
 
 impl Memory {
@@ -32,6 +34,8 @@ impl Memory {
         let rom: ROM;
         let ram: RAM;
 
+        let debug_mode: bool = debug_mode!();
+
         if std::path::Path::new(&file_path.to_owned()).exists() {
             rom_file = File::open(file_path.to_owned()).expect("Could not find ROM file; aborting");
             rom_buffer = Vec::new();
@@ -44,6 +48,8 @@ impl Memory {
             rom_buffer[(memory_map::IROZ + 0x0002) as usize] = 0x00; // STOP 00
             rom_cartridge_type = cartridge_types::ROM_ONLY;
         }
+
+        debug_system!(format!("{:#04X}", rom_cartridge_type), debug_mode);
 
         boot_rom_file.read_to_end(&mut boot_rom_buffer).expect("Could not load BOOT ROM file; aborting");
 
@@ -69,11 +75,17 @@ impl Memory {
         Memory {
             rom: rom,
             ram: ram,
+            debug_mode: debug_mode,
         }
     }
 
     #[allow(unreachable_patterns)]
-    pub fn fetch(&mut self, address: u16) -> u8 {
+    pub fn fetch(&mut self, external_address: u16) -> u8 {
+        let mut address = external_address;
+        if address > memory_map::ROM9 {
+            address = address.wrapping_sub(self.rom.data.len() as u16);
+        }
+        debug_system!(format!("memory[{:#04X}|{:#04X}]", external_address, address), self.debug_mode);
         match address {
             // Internal / BOOT ROM (if enabled; external ROM otherwise)
             memory_map::IROM..=memory_map::IROX => {
@@ -102,12 +114,17 @@ impl Memory {
             // Usable High RAM Area
             memory_map::HRAM..=memory_map::RAM9 => self.ram.data[address as usize],
             // This is by definition unreachable, since the address (u16) maximum value is 0xFFFF
-            _ => panic!("Unreachable area: ${:02X}", address)
+            _ => panic!("Unreachable area: ${:#02X}", address)
         }
     }
 
     #[allow(unreachable_patterns)]
-    pub fn write(&mut self, address: u16, word: u8) {
+    pub fn write(&mut self, external_address: u16, word: u8) {
+        let mut address = external_address;
+        if address > memory_map::ROM9 {
+            address = address.wrapping_sub(self.rom.data.len() as u16);
+        }
+        debug_system!(format!("memory[{:#04X}|{:#04X}]={:#04X}", external_address, address, word), self.debug_mode);
         match address {
             // Internal / BOOT ROM (if enabled; external ROM otherwise)
             memory_map::IROM..=memory_map::IROX => {},
@@ -132,7 +149,7 @@ impl Memory {
             // Usable High RAM Area
             memory_map::HRAM..=memory_map::RAM9 => self.ram.data[address as usize] = word,
             // This is by definition unreachable, since the address (u16) maximum value is 0xFFFF
-            _ => panic!("Unreachable area: ${:02X}", address)
+            _ => panic!("Unreachable area: ${:#02X}", address)
         }
     }
 

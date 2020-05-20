@@ -3,9 +3,14 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::render::WindowCanvas;
 use sdl2::Sdl;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+use std::thread;
 
 use ::hardware::system::System;
+
+const CLOCK_SPEED      : i32 = 4194304;
+const FRAME_RATE       : i32 = 60;
+const CYCLES_PER_FRAME : i32 = CLOCK_SPEED / FRAME_RATE;
 
 pub struct EmulatorContext {
     context: Sdl,
@@ -40,8 +45,21 @@ impl EmulatorContext {
     pub fn run(&mut self) {
         let mut event_pump = self.context.event_pump().unwrap();
         let mut i = 0;
+        let frame_time = Duration::new(0, 16600000);
 
+        self.hardware.boot();
         'running: loop {
+            let start_time = Instant::now();
+            let mut emulated_cycles = 0;
+            while emulated_cycles < CYCLES_PER_FRAME {
+                emulated_cycles += self.hardware.cycle() as i32;
+            }
+            let elapsed_time = start_time.elapsed();
+            if elapsed_time < frame_time {
+                let remaining_time = frame_time - elapsed_time;
+                thread::sleep(remaining_time);
+            }
+
             i = (i + 1) % 255;
             self.canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
             self.canvas.clear();

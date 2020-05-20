@@ -4,6 +4,7 @@ use super::flags;
 use super::bit_operations;
 
 /// This function represents the instruction subset executor within the 0xCB prefix.
+#[allow(unreachable_patterns)]
 pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
     match opcode {
         /* RLC B */ 0x00 => {

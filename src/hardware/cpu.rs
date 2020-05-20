@@ -1,5 +1,8 @@
+use std::env;
+
 use super::instruction_set;
 use super::memory::Memory;
+use super::disassembler;
 
 /// # The CPU Registers
 ///
@@ -91,6 +94,7 @@ pub struct CPU {
     pub interruption_enabled: bool,
     pub stopped: bool,
     pub halted: bool,
+    pub debug_mode: bool,
 }
 
 impl CPU {
@@ -112,15 +116,34 @@ impl CPU {
             instruction_register: 0x00,
         };
 
+        let debug_mode: bool = debug_mode!();
+
         CPU {
             registers: registers,
             interruption_enabled: true,
             stopped: false,
             halted: false,
+            debug_mode: debug_mode,
         }
     }
 
     pub fn boot(&mut self) {
+        self.registers.r_a = 0x00;
+        self.registers.r_f = 0x00;
+        self.registers.r_b = 0x00;
+        self.registers.r_c = 0x00;
+        self.registers.r_d = 0x00;
+        self.registers.r_e = 0x00;
+        self.registers.r_h = 0x00;
+        self.registers.r_l = 0x00;
+        self.registers.stack_pointer = 0xFFFF;
+        self.registers.program_counter = 0x0000;
+        self.registers.address_register = 0x0000;
+        self.registers.data_register = 0x00;
+        self.registers.instruction_register = 0x00;
+    }
+
+    pub fn boot_expected(&mut self) {
         self.registers.r_a = 0x01;
         self.registers.r_f = 0xB0;
         self.registers.r_b = 0x00;
@@ -137,7 +160,7 @@ impl CPU {
     }
 
     /// This represents the fetch–decode–execute cycle (or instruction cycle).
-    pub fn cycle(&mut self, mut memory: Memory) {
+    pub fn cycle(&mut self, memory: &mut Memory) -> usize {
         // Fetch the instruction in the memory
         //     Memory Address Register (MAR) <- from the PC register
         //     Memory Data Register (MDR) <- Loads the data from the memory
@@ -151,7 +174,8 @@ impl CPU {
         // Decode
         //     Check what instruction should be executed
         // Execute
-        let cycles = instruction_set::execute(self, &mut memory, self.registers.instruction_register);
+        debug_system!(format!("{}", disassembler::decode(self.registers.instruction_register)), self.debug_mode);
+        instruction_set::execute(self, memory, self.registers.instruction_register)
         //     Interruption Handler
     }
 
@@ -160,16 +184,18 @@ impl CPU {
     /// exceptionally when the opcode states that).
     pub fn fetch_operand(&mut self, memory: &mut Memory) -> u8 {
         // The PC is already pointing to the operand
-        self.registers.address_register += self.registers.program_counter;
+        self.registers.address_register = self.registers.program_counter;
         self.registers.data_register = memory.fetch(self.registers.address_register);
         // The PC is set to point to the next instruction or operand
         self.registers.program_counter += 1;
+        debug_system!(format!("op={:#04X}", self.registers.data_register), self.debug_mode);
         self.registers.data_register
     }
 
     pub fn fetch_data(&mut self, memory: &mut Memory, address: u16) -> u8 {
         self.registers.address_register = address;
         self.registers.data_register = memory.fetch(self.registers.address_register);
+        debug_system!(format!("fetch={:#04X}", self.registers.data_register), self.debug_mode);
         self.registers.data_register
     }
 

@@ -18,4 +18,12 @@ impl System {
         }
     }
 
+    pub fn boot(&mut self) {
+        self.cpu.boot();
+    }
+
+    pub fn cycle(&mut self) -> usize {
+        self.cpu.cycle(&mut self.memory)
+    }
+
 }
