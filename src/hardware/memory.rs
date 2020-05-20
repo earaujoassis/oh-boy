@@ -29,6 +29,7 @@ impl Memory {
         let mut boot_rom_buffer: Vec<u8> = Vec::new();
         let mut rom_file;
         let mut rom_buffer: Vec<u8>;
+        let ram_buffer: Vec<u8>;
         let rom_cartridge_type: u8;
         let memory_size: usize;
         let rom: ROM;
@@ -42,14 +43,14 @@ impl Memory {
             rom_file.read_to_end(&mut rom_buffer).expect("Could not load ROM file; aborting");
             rom_cartridge_type = rom_buffer[memory_map::RTC as usize];
         } else {
-            rom_buffer = Vec::with_capacity(16_384); // 16kB of Empty ROM
+            rom_buffer = vec![0; 16_384]; // 16kB of Empty ROM
             rom_buffer[memory_map::IROZ as usize] = 0x00; // NOP
             rom_buffer[(memory_map::IROZ + 0x0001) as usize] = 0x10; //
             rom_buffer[(memory_map::IROZ + 0x0002) as usize] = 0x00; // STOP 00
             rom_cartridge_type = cartridge_types::ROM_ONLY;
         }
 
-        debug_system!(format!("{:#04X}", rom_cartridge_type), debug_mode);
+        debug_system!(format!("Cartridge type: {:#04X}", rom_cartridge_type), debug_mode);
 
         boot_rom_file.read_to_end(&mut boot_rom_buffer).expect("Could not load BOOT ROM file; aborting");
 
@@ -59,7 +60,9 @@ impl Memory {
         //         rom_buffer[memory_map::OSIZ as usize],
         //         rom_buffer.len());
         // }
-        memory_size = 0xFFFF - rom_buffer.len();
+        memory_size = 0xFFFF as usize;
+        ram_buffer = vec![0; memory_size];
+        debug_system!(format!("RAM Size: {}", ram_buffer.len()), debug_mode);
 
         rom = ROM {
             data: rom_buffer,
@@ -69,7 +72,7 @@ impl Memory {
         };
 
         ram = RAM {
-            data: Vec::with_capacity(memory_size)
+            data: ram_buffer,
         };
 
         Memory {
@@ -80,12 +83,8 @@ impl Memory {
     }
 
     #[allow(unreachable_patterns)]
-    pub fn fetch(&mut self, external_address: u16) -> u8 {
-        let mut address = external_address;
-        if address > memory_map::ROM9 {
-            address = address.wrapping_sub(self.rom.data.len() as u16);
-        }
-        debug_system!(format!("memory[{:#04X}|{:#04X}]", external_address, address), self.debug_mode);
+    pub fn fetch(&mut self, address: u16) -> u8 {
+        debug_system!(format!("memory[{:#06X}]", address), self.debug_mode);
         match address {
             // Internal / BOOT ROM (if enabled; external ROM otherwise)
             memory_map::IROM..=memory_map::IROX => {
@@ -119,12 +118,8 @@ impl Memory {
     }
 
     #[allow(unreachable_patterns)]
-    pub fn write(&mut self, external_address: u16, word: u8) {
-        let mut address = external_address;
-        if address > memory_map::ROM9 {
-            address = address.wrapping_sub(self.rom.data.len() as u16);
-        }
-        debug_system!(format!("memory[{:#04X}|{:#04X}]={:#04X}", external_address, address, word), self.debug_mode);
+    pub fn write(&mut self, address: u16, word: u8) {
+        debug_system!(format!("memory[{:#06X}]={:#04X}", address, word), self.debug_mode);
         match address {
             // Internal / BOOT ROM (if enabled; external ROM otherwise)
             memory_map::IROM..=memory_map::IROX => {},
