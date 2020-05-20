@@ -31,8 +31,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let lsb = cpu.fetch_operand(memory);
             let msb = cpu.fetch_operand(memory);
             let a16 = bit_operations::endianess(lsb as u16, msb as u16, 8);
-            cpu.write_data(memory, a16, bit_operations::lsb(a16, 8));
-            cpu.write_data(memory, a16.wrapping_add(1), bit_operations::msb(a16, 8));
+            cpu.write_data(memory, a16, bit_operations::lsb(cpu.registers.stack_pointer, 8));
+            cpu.write_data(memory, a16.wrapping_add(1), bit_operations::msb(cpu.registers.stack_pointer, 8));
             5
         },
         /* LD DE,d16 */ 0x11 => {
@@ -91,49 +91,49 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let msb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
             cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_add(1);
             cpu.registers.r_a = msb;
-            cpu.registers.r_f = lsb;
+            cpu.registers.r_f = lsb & 0xF0; // the last 4-bits must be set to zero
             3
         },
         /* PUSH BC */ 0xC5 => {
             let msb = cpu.registers.r_b;
             let lsb = cpu.registers.r_c;
             cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_sub(1);
-            cpu.write_data(memory, cpu.registers.stack_pointer, lsb);
-            cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_sub(1);
             cpu.write_data(memory, cpu.registers.stack_pointer, msb);
+            cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_sub(1);
+            cpu.write_data(memory, cpu.registers.stack_pointer, lsb);
             4
         },
         /* PUSH DE */ 0xD5 => {
             let msb = cpu.registers.r_d;
             let lsb = cpu.registers.r_e;
             cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_sub(1);
-            cpu.write_data(memory, cpu.registers.stack_pointer, lsb);
-            cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_sub(1);
             cpu.write_data(memory, cpu.registers.stack_pointer, msb);
+            cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_sub(1);
+            cpu.write_data(memory, cpu.registers.stack_pointer, lsb);
             4
         },
         /* PUSH HL */ 0xE5 => {
             let msb = cpu.registers.r_h;
             let lsb = cpu.registers.r_l;
             cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_sub(1);
-            cpu.write_data(memory, cpu.registers.stack_pointer, lsb);
-            cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_sub(1);
             cpu.write_data(memory, cpu.registers.stack_pointer, msb);
+            cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_sub(1);
+            cpu.write_data(memory, cpu.registers.stack_pointer, lsb);
             4
         },
         /* PUSH AF */ 0xF5 => {
             let msb = cpu.registers.r_a;
             let lsb = cpu.registers.r_f;
             cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_sub(1);
-            cpu.write_data(memory, cpu.registers.stack_pointer, lsb);
-            cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_sub(1);
             cpu.write_data(memory, cpu.registers.stack_pointer, msb);
+            cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_sub(1);
+            cpu.write_data(memory, cpu.registers.stack_pointer, lsb);
             4
         },
         /* LD HL,SP+r8 */ 0xF8 => {
-            let r8 = cpu.fetch_operand(memory);
+            let r8 = cpu.fetch_operand(memory) as i8;
             let sp = cpu.registers.stack_pointer;
-            let d16 = (sp as i16).wrapping_add(r8 as i16) as u16;
+            let d16 = ((sp as i16).wrapping_add(r8 as i16)) as u16;
             // let zero_flag = flags::RESET; -> this is implied
             // let subtract_flag = flags::RESET; -> this is implied
             let half_carry_flag = if (d16 & 0xF) < (sp & 0xF) { flags::HALF_CARRY } else { flags::RESET };
@@ -173,10 +173,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
             2
         },
-        /* INC SP */ 0x33 => {
-            cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_add(1);
-            2
-        },
+        /* INC SP */ 0x33 => { cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_add(1); 2 },
         /* ADD HL,BC */ 0x09 => {
             let d16_bc = bit_operations::join_words(cpu.registers.r_b as u16, cpu.registers.r_c as u16, 8);
             let d16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
@@ -252,14 +249,11 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
             2
         },
-        /* DEC SP */ 0x3B => {
-            cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_sub(1);
-            2
-        },
+        /* DEC SP */ 0x3B => { cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_sub(1); 2 },
         /* ADD SP,r8 */ 0xE8 => {
-            let r8 = cpu.fetch_operand(memory);
+            let r8 = cpu.fetch_operand(memory) as i8;
             let sp = cpu.registers.stack_pointer;
-            let d16 = sp.wrapping_add(r8 as u16);
+            let d16 = ((sp as i16).wrapping_add(r8 as i16)) as u16;
             // let zero_flag = flags::RESET; -> this is implied
             // let subtract_flag = flags::RESET; -> this is implied
             let half_carry_flag = if (d16 & 0xF) < (sp & 0xF) { flags::HALF_CARRY } else { flags::RESET };
@@ -542,6 +536,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             4
         },
         /* RETI */ 0xD9 => {
+            cpu.interruption_enabled = true;
             let lsb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
             cpu.registers.stack_pointer = cpu.registers.stack_pointer.wrapping_add(1);
             let msb = cpu.fetch_data(memory, cpu.registers.stack_pointer);
@@ -624,23 +619,23 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         },
         /* LDH (a8),A */ 0xE0 => {
             let a8 = cpu.fetch_operand(memory);
-            let a16 = (a8 as u16).wrapping_add(0xFF00) as u16;
+            let a16 = (0xFF00 | (a8 as u16)) as u16;
             cpu.write_data(memory, a16, cpu.registers.r_a);
             3
         },
         /* LDH A,(a8) */ 0xF0 => {
             let a8 = cpu.fetch_operand(memory);
-            let a16 = (a8 as u16).wrapping_add(0xFF00) as u16;
+            let a16 = (0xFF00 | (a8 as u16)) as u16;
             cpu.registers.r_a = cpu.fetch_data(memory, a16);
             3
         },
         /* LD (C),A */ 0xE2 => {
-            let a16 = (cpu.registers.r_c as u16).wrapping_add(0xFF00);
+            let a16 = (0xFF00 | (cpu.registers.r_c as u16)) as u16;
             cpu.write_data(memory, a16, cpu.registers.r_a);
             2
         },
         /* LD A,(C) */ 0xF2 => {
-            let a16 = (cpu.registers.r_c as u16).wrapping_add(0xFF00);
+            let a16 = (0xFF00 | (cpu.registers.r_c as u16)) as u16;
             cpu.registers.r_a = cpu.fetch_data(memory, a16);
             2
         },
@@ -658,7 +653,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             cpu.registers.r_a = cpu.fetch_data(memory, a16);
             4
         },
-        /* LD B,B */ 0x40 => { cpu.registers.r_b = cpu.registers.r_b; 1 },
+        /* LD B,B */ 0x40 => { 1 },
         /* LD B,C */ 0x41 => { cpu.registers.r_b = cpu.registers.r_c; 1 },
         /* LD B,D */ 0x42 => { cpu.registers.r_b = cpu.registers.r_d; 1 },
         /* LD B,E */ 0x43 => { cpu.registers.r_b = cpu.registers.r_e; 1 },
@@ -672,7 +667,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         },
         /* LD B,A */ 0x47 => { cpu.registers.r_b = cpu.registers.r_a; 1 },
         /* LD C,B */ 0x48 => { cpu.registers.r_c = cpu.registers.r_b; 1 },
-        /* LD C,C */ 0x49 => { cpu.registers.r_c = cpu.registers.r_c; 1 },
+        /* LD C,C */ 0x49 => { 1 },
         /* LD C,D */ 0x4A => { cpu.registers.r_c = cpu.registers.r_d; 1 },
         /* LD C,E */ 0x4B => { cpu.registers.r_c = cpu.registers.r_e; 1 },
         /* LD C,H */ 0x4C => { cpu.registers.r_c = cpu.registers.r_h; 1 },
@@ -686,7 +681,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         /* LD C,A */ 0x4F => { cpu.registers.r_c = cpu.registers.r_a; 1 },
         /* LD D,B */ 0x50 => { cpu.registers.r_d = cpu.registers.r_b; 1 },
         /* LD D,C */ 0x51 => { cpu.registers.r_d = cpu.registers.r_c; 1 },
-        /* LD D,D */ 0x52 => { cpu.registers.r_d = cpu.registers.r_d; 1 },
+        /* LD D,D */ 0x52 => { 1 },
         /* LD D,E */ 0x53 => { cpu.registers.r_d = cpu.registers.r_e; 1 },
         /* LD D,H */ 0x54 => { cpu.registers.r_d = cpu.registers.r_h; 1 },
         /* LD D,L */ 0x55 => { cpu.registers.r_d = cpu.registers.r_l; 1 },
@@ -700,7 +695,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         /* LD E,B */ 0x58 => { cpu.registers.r_e = cpu.registers.r_b; 1 },
         /* LD E,C */ 0x59 => { cpu.registers.r_e = cpu.registers.r_c; 1 },
         /* LD E,D */ 0x5A => { cpu.registers.r_e = cpu.registers.r_d; 1 },
-        /* LD E,E */ 0x5B => { cpu.registers.r_e = cpu.registers.r_e; 1 },
+        /* LD E,E */ 0x5B => { 1 },
         /* LD E,H */ 0x5C => { cpu.registers.r_e = cpu.registers.r_h; 1 },
         /* LD E,L */ 0x5D => { cpu.registers.r_e = cpu.registers.r_l; 1 },
         /* LD E,(HL) */ 0x5E => {
@@ -714,7 +709,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         /* LD H,C */ 0x61 => { cpu.registers.r_h = cpu.registers.r_c; 1 },
         /* LD H,D */ 0x62 => { cpu.registers.r_h = cpu.registers.r_d; 1 },
         /* LD H,E */ 0x63 => { cpu.registers.r_h = cpu.registers.r_e; 1 },
-        /* LD H,H */ 0x64 => { cpu.registers.r_h = cpu.registers.r_h; 1 },
+        /* LD H,H */ 0x64 => { 1 },
         /* LD H,L */ 0x65 => { cpu.registers.r_h = cpu.registers.r_l; 1 },
         /* LD H,(HL) */ 0x66 => {
             let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
@@ -728,7 +723,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
         /* LD L,D */ 0x6A => { cpu.registers.r_l = cpu.registers.r_d; 1 },
         /* LD L,E */ 0x6B => { cpu.registers.r_l = cpu.registers.r_e; 1 },
         /* LD L,H */ 0x6C => { cpu.registers.r_l = cpu.registers.r_h; 1 },
-        /* LD L,L */ 0x6D => { cpu.registers.r_l = cpu.registers.r_l; 1 },
+        /* LD L,L */ 0x6D => { 1 },
         /* LD L,(HL) */ 0x6E => {
             let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
             let d8 = cpu.fetch_data(memory, a16_hl);
@@ -783,7 +778,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             cpu.registers.r_a = d8;
             2
         },
-        /* LD A,A */ 0x7F => { cpu.registers.r_a = cpu.registers.r_a; 1 },
+        /* LD A,A */ 0x7F => { 1 },
         /* LD (BC),A */ 0x02 => {
             let a16_bc = bit_operations::join_words(cpu.registers.r_b as u16, cpu.registers.r_c as u16, 8);
             cpu.write_data(memory, a16_bc, cpu.registers.r_a);

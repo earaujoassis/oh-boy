@@ -16,7 +16,7 @@ pub fn join_words(op_a: u16, op_b: u16, nibble_size: u8) -> u16 {
 
 // Convert from one endianess to the other (revert nibbles)
 pub fn endianess(lsb: u16, msb: u16, nibble_size: u8) -> u16 {
-    swap_nibbles(join_words(lsb, msb, nibble_size), nibble_size)
+    join_words(msb, lsb, nibble_size)
 }
 
 pub fn msb(op: u16, nibble_size: u8) -> u8 {
