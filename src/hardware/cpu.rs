@@ -161,6 +161,9 @@ impl CPU {
 
     /// This represents the fetch–decode–execute cycle (or instruction cycle).
     pub fn cycle(&mut self, memory: &mut Memory) -> usize {
+        if self.stopped {
+            return 1;
+        }
         // Fetch the instruction in the memory
         //     Memory Address Register (MAR) <- from the PC register
         //     Memory Data Register (MDR) <- Loads the data from the memory

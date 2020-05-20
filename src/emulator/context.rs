@@ -8,9 +8,9 @@ use std::thread;
 
 use ::hardware::system::System;
 
-const CLOCK_SPEED      : i32 = 4194304;
-const FRAME_RATE       : i32 = 60;
-const CYCLES_PER_FRAME : i32 = CLOCK_SPEED / FRAME_RATE;
+const CLOCK_SPEED      : i32 = 4194304; // 4.194304 MHz
+const FRAME_RATE       : i32 = 59; // 59.727500569606 Hz
+const CYCLES_PER_FRAME : u16 = (CLOCK_SPEED / FRAME_RATE) as u16;
 
 pub struct EmulatorContext {
     context: Sdl,
@@ -50,9 +50,9 @@ impl EmulatorContext {
         self.hardware.boot();
         'running: loop {
             let start_time = Instant::now();
-            let mut emulated_cycles = 0;
+            let mut emulated_cycles: u16 = 0;
             while emulated_cycles < CYCLES_PER_FRAME {
-                emulated_cycles += self.hardware.cycle() as i32;
+                emulated_cycles += self.hardware.cycle() as u16;
             }
             let elapsed_time = start_time.elapsed();
             if elapsed_time < frame_time {
