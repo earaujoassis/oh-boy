@@ -1,3 +1,5 @@
+/// Part of the Arithmetic Logic Unit
+
 /// Arithmetic module defines functions for 8-bit arithmetic.
 /// It appropriately changes the Flag Register for each operation type.
 ///
