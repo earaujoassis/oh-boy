@@ -1,8 +1,8 @@
-use std::env;
+/// The Central Processing Unit
 
-use super::instruction_set;
 use super::memory::Memory;
-use super::disassembler;
+use super::instruction_set;
+use super::interrupt;
 
 /// # The CPU Registers
 ///
@@ -136,7 +136,7 @@ impl CPU {
         self.registers.r_e = 0x00;
         self.registers.r_h = 0x00;
         self.registers.r_l = 0x00;
-        self.registers.stack_pointer = 0xFFFF;
+        self.registers.stack_pointer = 0xFFFE;
         self.registers.program_counter = 0x0000;
         self.registers.address_register = 0x0000;
         self.registers.data_register = 0x00;
@@ -164,7 +164,15 @@ impl CPU {
         if self.stopped {
             return 1;
         }
-        // Fetch the instruction in the memory
+        // Interruption Handler
+        //     "Interrupts are accepted during the op code fetch cycle of each instruction."
+        //     According to the "GAME BOY Programming Manual Version 1.1"
+        interrupt::handler(self, memory);
+        // Check if CPU is Halted (an interruption should reactivate the CPU instruction cycle)
+        if self.halted {
+            return 1;
+        }
+        // Fetch the instruction in memory
         //     Memory Address Register (MAR) <- from the PC register
         //     Memory Data Register (MDR) <- Loads the data from the memory
         //     Current Instruction Register (CIR) <- Copy from the MDR (Memory Data Register)
@@ -172,14 +180,13 @@ impl CPU {
         self.registers.data_register = memory.fetch(self.registers.address_register);
         self.registers.instruction_register = self.registers.data_register;
         // The PC is set to point to the next instruction or operand. This is
-        // necessary for all jumps/calls instructions
+        // necessary for jump, call, and return instructions
         self.registers.program_counter += 1;
         // Decode
         //     Check what instruction should be executed
         // Execute
-        debug_system!(format!("{}", disassembler::decode(self.registers.instruction_register)), self.debug_mode);
+        debug_system!(format!("{:#06X}: ", self.registers.address_register), self.debug_mode);
         instruction_set::execute(self, memory, self.registers.instruction_register)
-        //     Interruption Handler
     }
 
     /// Used to fetch operands for a given instruction.
@@ -191,14 +198,12 @@ impl CPU {
         self.registers.data_register = memory.fetch(self.registers.address_register);
         // The PC is set to point to the next instruction or operand
         self.registers.program_counter += 1;
-        debug_system!(format!("op={:#04X}", self.registers.data_register), self.debug_mode);
         self.registers.data_register
     }
 
     pub fn fetch_data(&mut self, memory: &mut Memory, address: u16) -> u8 {
         self.registers.address_register = address;
         self.registers.data_register = memory.fetch(self.registers.address_register);
-        debug_system!(format!("fetch={:#04X}", self.registers.data_register), self.debug_mode);
         self.registers.data_register
     }
 
