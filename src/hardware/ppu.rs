@@ -100,28 +100,28 @@ impl PPU {
                 && current_ly < Frame::HEIGHT as u8 {
             // This is Mode 10
             next_mode = Mode::SEARCH_OAM as u8; // 2
-            next_stat = ((!(Mode::VBLANK as u8 | Mode::TRANSFER as u8) & current_stat) | (Mode::SEARCH_OAM as u8)) & 0xFF;
+            next_stat = ((!(Mode::VBLANK as u8 | Mode::SCANLINE as u8) & current_stat) | (Mode::SEARCH_OAM as u8)) & 0xFF;
             // If bit #5 at STAT is set, request interrupt
             must_request_interrupt = (current_stat & 0x20) > 0;
         } else if self.accumulated_cycles > MODE2_THRESHOLD
                 && self.accumulated_cycles < MODE2_THRESHOLD + MODE3_THRESHOLD
                 && current_ly < Frame::HEIGHT as u8 {
             // This is Mode 11
-            next_mode = Mode::TRANSFER as u8;   // 3
-            next_stat = (current_stat | (Mode::TRANSFER as u8)) & 0xFF;
+            next_mode = Mode::SCANLINE as u8;   // 3
+            next_stat = (current_stat | (Mode::SCANLINE as u8)) & 0xFF;
         } else if self.accumulated_cycles > MODE2_THRESHOLD + MODE3_THRESHOLD
                 && self.accumulated_cycles < MODE0_THRESHOLD + MODE2_THRESHOLD + MODE3_THRESHOLD
                 && current_ly < Frame::HEIGHT as u8 {
             // This is Mode 00
             next_mode = Mode::HBLANK as u8;     // 0
             // Check if we're at HBLANK for the first time
-            if (next_mode != current_mode) {
-                // At HBLANK all transfers have been completed;
+            if next_mode != current_mode {
+                // At HBLANK all transfers (the whole scanline) have been completed;
                 // so it is a good moment for the emulator to update buffer
                 self.video.update_scanline(memory);
                 current_ly = self.fetch_data(memory, memory_map::LY);
             }
-            next_stat = (!(Mode::TRANSFER as u8) & current_stat) & 0xFF;
+            next_stat = (!(Mode::SCANLINE as u8) & current_stat) & 0xFF;
             // If bit #3 at STAT is set, request interrupt
             must_request_interrupt = (current_stat & 0x08) > 0;
         } else if self.accumulated_cycles >  MODE0_THRESHOLD + MODE2_THRESHOLD + MODE3_THRESHOLD

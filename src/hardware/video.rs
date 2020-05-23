@@ -19,7 +19,7 @@ pub enum Mode {
     HBLANK     = 0x00,
     VBLANK     = 0x01,
     SEARCH_OAM  = 0x02,
-    TRANSFER   = 0x03,
+    SCANLINE   = 0x03,
 }
 
 #[allow(non_camel_case_types)]
