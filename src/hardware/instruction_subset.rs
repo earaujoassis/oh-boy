@@ -7,405 +7,365 @@ use super::bit_operations;
 #[allow(unreachable_patterns)]
 pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
     match opcode {
-        /* RLC B */ 0x00 => {
-            let (register_data, register_flags) = bit_operations::rotate_left_carry(cpu.registers.r_b, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_b = register_data;
-            2
+        /* RLC r/(HL) */ 0x00..=0x07 => {
+            let mut cycles = 2;
+            let action_pair;
+
+            match opcode & 0x07 {
+                0x07 => {
+                    action_pair = bit_operations::rotate_left_carry(cpu.registers.r_a, cpu.registers.r_f);
+                    cpu.registers.r_a = action_pair.0;
+                },
+                0x00 => {
+                    action_pair = bit_operations::rotate_left_carry(cpu.registers.r_b, cpu.registers.r_f);
+                    cpu.registers.r_b = action_pair.0;
+                },
+                0x01 => {
+                    action_pair = bit_operations::rotate_left_carry(cpu.registers.r_c, cpu.registers.r_f);
+                    cpu.registers.r_c = action_pair.0;
+                },
+                0x02 => {
+                    action_pair = bit_operations::rotate_left_carry(cpu.registers.r_d, cpu.registers.r_f);
+                    cpu.registers.r_d = action_pair.0;
+                },
+                0x03 => {
+                    action_pair = bit_operations::rotate_left_carry(cpu.registers.r_e, cpu.registers.r_f);
+                    cpu.registers.r_e = action_pair.0;
+                },
+                0x04 => {
+                    action_pair = bit_operations::rotate_left_carry(cpu.registers.r_h, cpu.registers.r_f);
+                    cpu.registers.r_h = action_pair.0;
+                },
+                0x05 => {
+                    action_pair = bit_operations::rotate_left_carry(cpu.registers.r_l, cpu.registers.r_f);
+                    cpu.registers.r_l = action_pair.0;
+                },
+                0x06 => {
+                    let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+                    let d8 = cpu.fetch_data(memory, a16_hl);
+                    action_pair = bit_operations::rotate_left_carry(d8, cpu.registers.r_f);
+                    cpu.write_data(memory, a16_hl, action_pair.0);
+                    cycles = 4;
+                },
+                _ => panic!("There's an error at RLC"),
+            };
+            cpu.registers.r_f = action_pair.1 as u8;
+            cycles
         },
-        /* RLC C */ 0x01 => {
-            let (register_data, register_flags) = bit_operations::rotate_left_carry(cpu.registers.r_c, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_c = register_data;
-            2
+        /* RRC r/(HL) */ 0x08..=0x0F => {
+            let mut cycles = 2;
+            let action_pair;
+
+            match opcode & 0x07 {
+                /* A */ 0x07 => {
+                    action_pair = bit_operations::rotate_right_carry(cpu.registers.r_a, cpu.registers.r_f);
+                    cpu.registers.r_a = action_pair.0;
+                },
+                /* B */ 0x00 => {
+                    action_pair = bit_operations::rotate_right_carry(cpu.registers.r_b, cpu.registers.r_f);
+                    cpu.registers.r_b = action_pair.0;
+                },
+                /* C */ 0x01 => {
+                    action_pair = bit_operations::rotate_right_carry(cpu.registers.r_c, cpu.registers.r_f);
+                    cpu.registers.r_c = action_pair.0;
+                },
+                /* D */ 0x02 => {
+                    action_pair = bit_operations::rotate_right_carry(cpu.registers.r_d, cpu.registers.r_f);
+                    cpu.registers.r_d = action_pair.0;
+                },
+                /* E */ 0x03 => {
+                    action_pair = bit_operations::rotate_right_carry(cpu.registers.r_e, cpu.registers.r_f);
+                    cpu.registers.r_e = action_pair.0;
+                },
+                /* H */ 0x04 => {
+                    action_pair = bit_operations::rotate_right_carry(cpu.registers.r_h, cpu.registers.r_f);
+                    cpu.registers.r_h = action_pair.0;
+                },
+                /* L */ 0x05 => {
+                    action_pair = bit_operations::rotate_right_carry(cpu.registers.r_l, cpu.registers.r_f);
+                    cpu.registers.r_l = action_pair.0;
+                },
+                /* (HL) */ 0x06 => {
+                    let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+                    let d8 = cpu.fetch_data(memory, a16_hl);
+                    action_pair = bit_operations::rotate_right_carry(d8, cpu.registers.r_f);
+                    cpu.write_data(memory, a16_hl, action_pair.0);
+                    cycles = 4;
+                },
+                _ => panic!("There's an error at RRC"),
+            };
+            cpu.registers.r_f = action_pair.1 as u8;
+            cycles
         },
-        /* RLC D */ 0x02 => {
-            let (register_data, register_flags) = bit_operations::rotate_left_carry(cpu.registers.r_d, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_d = register_data;
-            2
+        /* RL r/(HL) */ 0x10..=0x17 => {
+            let mut cycles = 2;
+            let action_pair;
+
+            match opcode & 0x07 {
+                /* A */ 0x07 => {
+                    action_pair = bit_operations::rotate_left(cpu.registers.r_a, cpu.registers.r_f);
+                    cpu.registers.r_a = action_pair.0;
+                },
+                /* B */ 0x00 => {
+                    action_pair = bit_operations::rotate_left(cpu.registers.r_b, cpu.registers.r_f);
+                    cpu.registers.r_b = action_pair.0;
+                },
+                /* C */ 0x01 => {
+                    action_pair = bit_operations::rotate_left(cpu.registers.r_c, cpu.registers.r_f);
+                    cpu.registers.r_c = action_pair.0;
+                },
+                /* D */ 0x02 => {
+                    action_pair = bit_operations::rotate_left(cpu.registers.r_d, cpu.registers.r_f);
+                    cpu.registers.r_d = action_pair.0;
+                },
+                /* E */ 0x03 => {
+                    action_pair = bit_operations::rotate_left(cpu.registers.r_e, cpu.registers.r_f);
+                    cpu.registers.r_e = action_pair.0;
+                },
+                /* H */ 0x04 => {
+                    action_pair = bit_operations::rotate_left(cpu.registers.r_h, cpu.registers.r_f);
+                    cpu.registers.r_h = action_pair.0;
+                },
+                /* L */ 0x05 => {
+                    action_pair = bit_operations::rotate_left(cpu.registers.r_l, cpu.registers.r_f);
+                    cpu.registers.r_l = action_pair.0;
+                },
+                /* (HL) */ 0x06 => {
+                    let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+                    let d8 = cpu.fetch_data(memory, a16_hl);
+                    action_pair = bit_operations::rotate_left(d8, cpu.registers.r_f);
+                    cpu.write_data(memory, a16_hl, action_pair.0);
+                    cycles = 4;
+                },
+                _ => panic!("There's an error at RL"),
+            };
+            cpu.registers.r_f = action_pair.1 as u8;
+            cycles
         },
-        /* RLC E */ 0x03 => {
-            let (register_data, register_flags) = bit_operations::rotate_left_carry(cpu.registers.r_e, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_e = register_data;
-            2
+        /* RR r/(HL) */ 0x18..=0x1F => {
+            let mut cycles = 2;
+            let action_pair;
+
+            match opcode & 0x07 {
+                /* A */ 0x07 => {
+                    action_pair = bit_operations::rotate_right(cpu.registers.r_a, cpu.registers.r_f);
+                    cpu.registers.r_a = action_pair.0;
+                },
+                /* B */ 0x00 => {
+                    action_pair = bit_operations::rotate_right(cpu.registers.r_b, cpu.registers.r_f);
+                    cpu.registers.r_b = action_pair.0;
+                },
+                /* C */ 0x01 => {
+                    action_pair = bit_operations::rotate_right(cpu.registers.r_c, cpu.registers.r_f);
+                    cpu.registers.r_c = action_pair.0;
+                },
+                /* D */ 0x02 => {
+                    action_pair = bit_operations::rotate_right(cpu.registers.r_d, cpu.registers.r_f);
+                    cpu.registers.r_d = action_pair.0;
+                },
+                /* E */ 0x03 => {
+                    action_pair = bit_operations::rotate_right(cpu.registers.r_e, cpu.registers.r_f);
+                    cpu.registers.r_e = action_pair.0;
+                },
+                /* H */ 0x04 => {
+                    action_pair = bit_operations::rotate_right(cpu.registers.r_h, cpu.registers.r_f);
+                    cpu.registers.r_h = action_pair.0;
+                },
+                /* L */ 0x05 => {
+                    action_pair = bit_operations::rotate_right(cpu.registers.r_l, cpu.registers.r_f);
+                    cpu.registers.r_l = action_pair.0;
+                },
+                /* (HL) */ 0x06 => {
+                    let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+                    let d8 = cpu.fetch_data(memory, a16_hl);
+                    action_pair = bit_operations::rotate_right(d8, cpu.registers.r_f);
+                    cpu.write_data(memory, a16_hl, action_pair.0);
+                    cycles = 4;
+                },
+                _ => panic!("There's an error at RR"),
+            };
+            cpu.registers.r_f = action_pair.1 as u8;
+            cycles
         },
-        /* RLC H */ 0x04 => {
-            let (register_data, register_flags) = bit_operations::rotate_left_carry(cpu.registers.r_h, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_h = register_data;
-            2
+        /* SLA r/(HL) */ 0x20..=0x27 => {
+            let mut cycles = 2;
+            let action_pair;
+
+            match opcode & 0x07 {
+                /* A */ 0x07 => {
+                    action_pair = bit_operations::shift_left(cpu.registers.r_a);
+                    cpu.registers.r_a = action_pair.0;
+                },
+                /* B */ 0x00 => {
+                    action_pair = bit_operations::shift_left(cpu.registers.r_b);
+                    cpu.registers.r_b = action_pair.0;
+                },
+                /* C */ 0x01 => {
+                    action_pair = bit_operations::shift_left(cpu.registers.r_c);
+                    cpu.registers.r_c = action_pair.0;
+                },
+                /* D */ 0x02 => {
+                    action_pair = bit_operations::shift_left(cpu.registers.r_d);
+                    cpu.registers.r_d = action_pair.0;
+                },
+                /* E */ 0x03 => {
+                    action_pair = bit_operations::shift_left(cpu.registers.r_e);
+                    cpu.registers.r_e = action_pair.0;
+                },
+                /* H */ 0x04 => {
+                    action_pair = bit_operations::shift_left(cpu.registers.r_h);
+                    cpu.registers.r_h = action_pair.0;
+                },
+                /* L */ 0x05 => {
+                    action_pair = bit_operations::shift_left(cpu.registers.r_l);
+                    cpu.registers.r_l = action_pair.0;
+                },
+                /* (HL) */ 0x06 => {
+                    let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+                    let d8 = cpu.fetch_data(memory, a16_hl);
+                    action_pair = bit_operations::shift_left(d8);
+                    cpu.write_data(memory, a16_hl, action_pair.0);
+                    cycles = 4;
+                },
+                _ => panic!("There's an error at SLA"),
+            };
+            cpu.registers.r_f = action_pair.1 as u8;
+            cycles
         },
-        /* RLC L */ 0x05 => {
-            let (register_data, register_flags) = bit_operations::rotate_left_carry(cpu.registers.r_l, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_l = register_data;
-            2
+        /* SRA r/(HL) */ 0x28..=0x2F => {
+            let mut cycles = 2;
+            let action_pair;
+
+            match opcode & 0x07 {
+                /* A */ 0x07 => {
+                    action_pair = bit_operations::shift_right(cpu.registers.r_a);
+                    cpu.registers.r_a = action_pair.0;
+                },
+                /* B */ 0x00 => {
+                    action_pair = bit_operations::shift_right(cpu.registers.r_b);
+                    cpu.registers.r_b = action_pair.0;
+                },
+                /* C */ 0x01 => {
+                    action_pair = bit_operations::shift_right(cpu.registers.r_c);
+                    cpu.registers.r_c = action_pair.0;
+                },
+                /* D */ 0x02 => {
+                    action_pair = bit_operations::shift_right(cpu.registers.r_d);
+                    cpu.registers.r_d = action_pair.0;
+                },
+                /* E */ 0x03 => {
+                    action_pair = bit_operations::shift_right(cpu.registers.r_e);
+                    cpu.registers.r_e = action_pair.0;
+                },
+                /* H */ 0x04 => {
+                    action_pair = bit_operations::shift_right(cpu.registers.r_h);
+                    cpu.registers.r_h = action_pair.0;
+                },
+                /* L */ 0x05 => {
+                    action_pair = bit_operations::shift_right(cpu.registers.r_l);
+                    cpu.registers.r_l = action_pair.0;
+                },
+                /* (HL) */ 0x06 => {
+                    let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+                    let d8 = cpu.fetch_data(memory, a16_hl);
+                    action_pair = bit_operations::shift_right(d8);
+                    cpu.write_data(memory, a16_hl, action_pair.0);
+                    cycles = 4;
+                },
+                _ => panic!("There's an error at SRA"),
+            };
+            cpu.registers.r_f = action_pair.1 as u8;
+            cycles
         },
-        /* RLC (HL) */ 0x06 => {
-            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
-            let d8 = cpu.fetch_data(memory, a16_hl);
-            let (n8, register_flags) = bit_operations::rotate_left_carry(d8, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.write_data(memory, a16_hl, n8);
-            4
-        },
-        /* RLC A */ 0x07 => {
-            let (register_data, register_flags) = bit_operations::rotate_left_carry(cpu.registers.r_a, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_a = register_data;
-            2
-        },
-        /* RRC B */ 0x08 => {
-            let (register_data, register_flags) = bit_operations::rotate_right_carry(cpu.registers.r_b, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_b = register_data;
-            2
-        },
-        /* RRC C */ 0x09 => {
-            let (register_data, register_flags) = bit_operations::rotate_right_carry(cpu.registers.r_c, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_c = register_data;
-            2
-        },
-        /* RRC D */ 0x0A => {
-            let (register_data, register_flags) = bit_operations::rotate_right_carry(cpu.registers.r_d, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_d = register_data;
-            2
-        },
-        /* RRC E */ 0x0B => {
-            let (register_data, register_flags) = bit_operations::rotate_right_carry(cpu.registers.r_e, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_e = register_data;
-            2
-        },
-        /* RRC H */ 0x0C => {
-            let (register_data, register_flags) = bit_operations::rotate_right_carry(cpu.registers.r_h, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_h = register_data;
-            2
-        },
-        /* RRC L */ 0x0D => {
-            let (register_data, register_flags) = bit_operations::rotate_right_carry(cpu.registers.r_l, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_l = register_data;
-            2
-        },
-        /* RRC (HL) */ 0x0E => {
-            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
-            let d8 = cpu.fetch_data(memory, a16_hl);
-            let (n8, register_flags) = bit_operations::rotate_right_carry(d8, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.write_data(memory, a16_hl, n8);
-            4
-        },
-        /* RRC A */ 0x0F => {
-            let (register_data, register_flags) = bit_operations::rotate_right_carry(cpu.registers.r_a, cpu.registers.r_f);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_a = register_data;
-            2
-        },
-        /* RL B */ 0x10 => {
-            let (register_data, register_flags) = bit_operations::rotate_left(cpu.registers.r_b);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_b = register_data;
-            2
-        },
-        /* RL C */ 0x11 => {
-            let (register_data, register_flags) = bit_operations::rotate_left(cpu.registers.r_c);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_c = register_data;
-            2
-        },
-        /* RL D */ 0x12 => {
-            let (register_data, register_flags) = bit_operations::rotate_left(cpu.registers.r_d);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_d = register_data;
-            2
-        },
-        /* RL E */ 0x13 => {
-            let (register_data, register_flags) = bit_operations::rotate_left(cpu.registers.r_e);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_e = register_data;
-            2
-        },
-        /* RL H */ 0x14 => {
-            let (register_data, register_flags) = bit_operations::rotate_left(cpu.registers.r_h);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_h = register_data;
-            2
-        },
-        /* RL L */ 0x15 => {
-            let (register_data, register_flags) = bit_operations::rotate_left(cpu.registers.r_l);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_l = register_data;
-            2
-        },
-        /* RL (HL) */ 0x16 => {
-            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
-            let d8 = cpu.fetch_data(memory, a16_hl);
-            let (n8, register_flags) = bit_operations::rotate_left(d8);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.write_data(memory, a16_hl, n8);
-            4
-        },
-        /* RL A */ 0x17 => {
-            let (register_data, register_flags) = bit_operations::rotate_left(cpu.registers.r_a);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_a = register_data;
-            2
-        },
-        /* RR B */ 0x18 => {
-            let (register_data, register_flags) = bit_operations::rotate_right(cpu.registers.r_b);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_b = register_data;
-            2
-        },
-        /* RR C */ 0x19 => {
-            let (register_data, register_flags) = bit_operations::rotate_right(cpu.registers.r_c);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_c = register_data;
-            2
-        },
-        /* RR D */ 0x1A => {
-            let (register_data, register_flags) = bit_operations::rotate_right(cpu.registers.r_d);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_d = register_data;
-            2
-        },
-        /* RR E */ 0x1B => {
-            let (register_data, register_flags) = bit_operations::rotate_right(cpu.registers.r_e);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_e = register_data;
-            2
-        },
-        /* RR H */ 0x1C => {
-            let (register_data, register_flags) = bit_operations::rotate_right(cpu.registers.r_h);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_h = register_data;
-            2
-        },
-        /* RR L */ 0x1D => {
-            let (register_data, register_flags) = bit_operations::rotate_left(cpu.registers.r_l);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_l = register_data;
-            2
-        },
-        /* RR (HL) */ 0x1E => {
-            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
-            let d8 = cpu.fetch_data(memory, a16_hl);
-            let (n8, register_flags) = bit_operations::rotate_right(d8);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.write_data(memory, a16_hl, n8);
-            4
-        },
-        /* RR A */ 0x1F => {
-            let (register_data, register_flags) = bit_operations::rotate_right(cpu.registers.r_a);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_a = register_data;
-            2
-        },
-        /* SLA B */ 0x20 => {
-            let (register_data, register_flags) = bit_operations::shift_left(cpu.registers.r_b);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_b = register_data;
-            2
-        },
-        /* SLA C */ 0x21 => {
-            let (register_data, register_flags) = bit_operations::shift_left(cpu.registers.r_c);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_c = register_data;
-            2
-        },
-        /* SLA D */ 0x22 => {
-            let (register_data, register_flags) = bit_operations::shift_left(cpu.registers.r_d);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_d = register_data;
-            2
-        },
-        /* SLA E */ 0x23 => {
-            let (register_data, register_flags) = bit_operations::shift_left(cpu.registers.r_e);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_e = register_data;
-            2
-        },
-        /* SLA H */ 0x24 => {
-            let (register_data, register_flags) = bit_operations::shift_left(cpu.registers.r_h);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_h = register_data;
-            2
-        },
-        /* SLA L */ 0x25 => {
-            let (register_data, register_flags) = bit_operations::shift_left(cpu.registers.r_l);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_l = register_data;
-            2
-        },
-        /* SLA (HL) */ 0x26 => {
-            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
-            let d8 = cpu.fetch_data(memory, a16_hl);
-            let (n8, register_flags) = bit_operations::shift_left(d8);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.write_data(memory, a16_hl, n8);
-            4
-        },
-        /* SLA A */ 0x27 => {
-            let (register_data, register_flags) = bit_operations::shift_left(cpu.registers.r_a);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_a = register_data;
-            2
-        },
-        /* SRA B */ 0x28 => {
-            let (register_data, register_flags) = bit_operations::shift_right(cpu.registers.r_b);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_b = register_data;
-            2
-        },
-        /* SRA C */ 0x29 => {
-            let (register_data, register_flags) = bit_operations::shift_right(cpu.registers.r_c);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_c = register_data;
-            2
-        },
-        /* SRA D */ 0x2A => {
-            let (register_data, register_flags) = bit_operations::shift_right(cpu.registers.r_d);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_d = register_data;
-            2
-        },
-        /* SRA E */ 0x2B => {
-            let (register_data, register_flags) = bit_operations::shift_right(cpu.registers.r_e);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_e = register_data;
-            2
-        },
-        /* SRA H */ 0x2C => {
-            let (register_data, register_flags) = bit_operations::shift_right(cpu.registers.r_h);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_h = register_data;
-            2
-        },
-        /* SRA L */ 0x2D => {
-            let (register_data, register_flags) = bit_operations::shift_right(cpu.registers.r_l);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_l = register_data;
-            2
-        },
-        /* SRA (HL) */ 0x2E => {
-            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
-            let d8 = cpu.fetch_data(memory, a16_hl);
-            let (n8, register_flags) = bit_operations::shift_right(d8);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.write_data(memory, a16_hl, n8);
-            4
-        },
-        /* SRA A */ 0x2F => {
-            let (register_data, register_flags) = bit_operations::shift_right(cpu.registers.r_a);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_a = register_data;
-            2
-        },
-        /* SWAP B */ 0x30 => {
-            let register_data = bit_operations::swap_nibbles(cpu.registers.r_b as u16, 4) as u8;
+        /* SWAP r/(HL) */ 0x30..=0x37 => {
+            let mut cycles = 2;
+            let register_data;
+
+            match opcode & 0x07 {
+                /* A */ 0x07 => {
+                    register_data = bit_operations::swap_nibbles(cpu.registers.r_a as u16, 4) as u8;
+                    cpu.registers.r_a = register_data;
+                },
+                /* B */ 0x00 => {
+                    register_data = bit_operations::swap_nibbles(cpu.registers.r_b as u16, 4) as u8;
+                    cpu.registers.r_b = register_data;
+                },
+                /* C */ 0x01 => {
+                    register_data = bit_operations::swap_nibbles(cpu.registers.r_c as u16, 4) as u8;
+                    cpu.registers.r_c = register_data;
+                },
+                /* D */ 0x02 => {
+                    register_data = bit_operations::swap_nibbles(cpu.registers.r_d as u16, 4) as u8;
+                    cpu.registers.r_d = register_data;
+                },
+                /* E */ 0x03 => {
+                    register_data = bit_operations::swap_nibbles(cpu.registers.r_e as u16, 4) as u8;
+                    cpu.registers.r_e = register_data;
+                },
+                /* H */ 0x04 => {
+                    register_data = bit_operations::swap_nibbles(cpu.registers.r_h as u16, 4) as u8;
+                    cpu.registers.r_h = register_data;
+                },
+                /* L */ 0x05 => {
+                    register_data = bit_operations::swap_nibbles(cpu.registers.r_l as u16, 4) as u8;
+                    cpu.registers.r_l = register_data;
+                },
+                /* (HL) */ 0x06 => {
+                    let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+                    let d8 = cpu.fetch_data(memory, a16_hl);
+                    register_data = bit_operations::swap_nibbles(d8 as u16, 4) as u8;
+                    cpu.write_data(memory, a16_hl, register_data);
+                    cycles = 4;
+                },
+                _ => panic!("There's an error at SWAP"),
+            };
             cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
-            cpu.registers.r_b = register_data;
-            2
+            cycles
         },
-        /* SWAP C */ 0x31 => {
-            let register_data = bit_operations::swap_nibbles(cpu.registers.r_c as u16, 4) as u8;
-            cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
-            cpu.registers.r_c = register_data;
-            2
-        },
-        /* SWAP D */ 0x32 => {
-            let register_data = bit_operations::swap_nibbles(cpu.registers.r_d as u16, 4) as u8;
-            cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
-            cpu.registers.r_d = register_data;
-            2
-        },
-        /* SWAP E */ 0x33 => {
-            let register_data = bit_operations::swap_nibbles(cpu.registers.r_e as u16, 4) as u8;
-            cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
-            cpu.registers.r_e = register_data;
-            2
-        },
-        /* SWAP H */ 0x34 => {
-            let register_data = bit_operations::swap_nibbles(cpu.registers.r_h as u16, 4) as u8;
-            cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
-            cpu.registers.r_h = register_data;
-            2
-        },
-        /* SWAP L */ 0x35 => {
-            let register_data = bit_operations::swap_nibbles(cpu.registers.r_l as u16, 4) as u8;
-            cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
-            cpu.registers.r_l = register_data;
-            2
-        },
-        /* SWAP (HL) */ 0x36 => {
-            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
-            let d8 = cpu.fetch_data(memory, a16_hl);
-            let n8 = bit_operations::swap_nibbles(d8 as u16, 4) as u8;
-            cpu.registers.r_f = if n8 == 0 { flags::ZERO } else { flags::RESET };
-            cpu.write_data(memory, a16_hl, n8);
-            4
-        },
-        /* SWAP A */ 0x37 => {
-            let register_data = bit_operations::swap_nibbles(cpu.registers.r_a as u16, 4) as u8;
-            cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
-            cpu.registers.r_a = register_data;
-            2
-        },
-        /* SRL B */ 0x38 => {
-            let (register_data, register_flags) = bit_operations::shift_right_reset(cpu.registers.r_b);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_b = register_data;
-            2
-        },
-        /* SRL C */ 0x39 => {
-            let (register_data, register_flags) = bit_operations::shift_right_reset(cpu.registers.r_c);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_c = register_data;
-            2
-        },
-        /* SRL D */ 0x3A => {
-            let (register_data, register_flags) = bit_operations::shift_right_reset(cpu.registers.r_d);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_d = register_data;
-            2
-        },
-        /* SRL E */ 0x3B => {
-            let (register_data, register_flags) = bit_operations::shift_right_reset(cpu.registers.r_e);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_e = register_data;
-            2
-        },
-        /* SRL H */ 0x3C => {
-            let (register_data, register_flags) = bit_operations::shift_right_reset(cpu.registers.r_h);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_h = register_data;
-            2
-        },
-        /* SRL L */ 0x3D => {
-            let (register_data, register_flags) = bit_operations::shift_right_reset(cpu.registers.r_l);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_l = register_data;
-            2
-        },
-        /* SRL (HL) */ 0x3E => {
-            let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
-            let d8 = cpu.fetch_data(memory, a16_hl);
-            let (n8, register_flags) = bit_operations::shift_right_reset(d8);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.write_data(memory, a16_hl, n8);
-            4
-        },
-        /* SRL A */ 0x3F => {
-            let (register_data, register_flags) = bit_operations::shift_right_reset(cpu.registers.r_a);
-            cpu.registers.r_f = register_flags as u8;
-            cpu.registers.r_a = register_data;
-            2
+        /* SRL r/(HL) */ 0x38..=0x3F => {
+            let mut cycles = 2;
+            let action_pair;
+
+            match opcode & 0x07 {
+                /* A */ 0x07 => {
+                    action_pair = bit_operations::shift_right_reset(cpu.registers.r_a);
+                    cpu.registers.r_a = action_pair.0;
+                },
+                /* B */ 0x00 => {
+                    action_pair = bit_operations::shift_right_reset(cpu.registers.r_b);
+                    cpu.registers.r_b = action_pair.0;
+                },
+                /* C */ 0x01 => {
+                    action_pair = bit_operations::shift_right_reset(cpu.registers.r_c);
+                    cpu.registers.r_c = action_pair.0;
+                },
+                /* D */ 0x02 => {
+                    action_pair = bit_operations::shift_right_reset(cpu.registers.r_d);
+                    cpu.registers.r_d = action_pair.0;
+                },
+                /* E */ 0x03 => {
+                    action_pair = bit_operations::shift_right_reset(cpu.registers.r_e);
+                    cpu.registers.r_e = action_pair.0;
+                },
+                /* H */ 0x04 => {
+                    action_pair = bit_operations::shift_right_reset(cpu.registers.r_h);
+                    cpu.registers.r_h = action_pair.0;
+                },
+                /* L */ 0x05 => {
+                    action_pair = bit_operations::shift_right_reset(cpu.registers.r_l);
+                    cpu.registers.r_l = action_pair.0;
+                },
+                /* (HL) */ 0x06 => {
+                    let a16_hl = bit_operations::join_words(cpu.registers.r_h as u16, cpu.registers.r_l as u16, 8);
+                    let d8 = cpu.fetch_data(memory, a16_hl);
+                    action_pair = bit_operations::shift_right_reset(d8);
+                    cpu.write_data(memory, a16_hl, action_pair.0);
+                    cycles = 4;
+                },
+                _ => panic!("There's an error at SRL"),
+            };
+            cpu.registers.r_f = action_pair.1 as u8;
+            cycles
         },
         /* BIT b,r/(HL) */ 0x40..=0x7F => {
             let mut cycle = 2;
@@ -436,6 +396,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
                 _ => panic!("Unrecognized bit position for the (0xCB) BIT opcode")
             };
             let flags = bit_operations::bit(d8, bit);
+            // Keep the CY flag value; the H flag must be set
             cpu.registers.r_f = flags | (cpu.registers.r_f & flags::CARRY) as u8;
             cycle
         },

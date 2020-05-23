@@ -1,9 +1,12 @@
+/// Memory Bus
+
 use std::io::prelude::*;
 use std::fs::File;
-use std::env;
 
 use super::memory_map;
 use super::cartridge_types;
+
+use super::DEBUG_MODE_DMG_ONLY;
 
 pub struct ROM {
     boot_rom_data: Vec<u8>,
@@ -19,7 +22,6 @@ pub struct RAM {
 pub struct Memory {
     rom: ROM,
     ram: RAM,
-    debug_mode: bool,
 }
 
 impl Memory {
@@ -44,15 +46,30 @@ impl Memory {
             rom_cartridge_type = rom_buffer[memory_map::RTC as usize];
         } else {
             rom_buffer = vec![0; 16_384]; // 16kB of Empty ROM
-            rom_buffer[memory_map::IROZ as usize] = 0x00; // NOP
-            rom_buffer[(memory_map::IROZ + 0x0001) as usize] = 0x10; //
-            rom_buffer[(memory_map::IROZ + 0x0002) as usize] = 0x00; // STOP 00
             rom_cartridge_type = cartridge_types::ROM_ONLY;
         }
 
-        debug_system!(format!("Cartridge type: {:#04X}", rom_cartridge_type), debug_mode);
-
         boot_rom_file.read_to_end(&mut boot_rom_buffer).expect("Could not load BOOT ROM file; aborting");
+        debug_system!(format!("Cartridge type: {:#04X}\n", rom_cartridge_type), debug_mode);
+        if debug_mode_integer!() == DEBUG_MODE_DMG_ONLY {
+            const STOP_AT: u16 = memory_map::IROZ;
+            rom_buffer[STOP_AT as usize] = 0x00; // NOP
+            rom_buffer[(STOP_AT + 0x0002) as usize] = 0x00; // STOP 00
+            rom_buffer[(STOP_AT + 0x0001) as usize] = 0x10; //
+
+            let until: u16 = debug_mode_until!();
+            if until != 0xFFFF {
+                if until < memory_map::IROX {
+                    boot_rom_buffer[until as usize] = 0x00; // NOP
+                    boot_rom_buffer[(until + 0x0002) as usize] = 0x00; // STOP 00
+                    boot_rom_buffer[(until + 0x0001) as usize] = 0x10; //
+                } else {
+                    rom_buffer[until as usize] = 0x00; // NOP
+                    rom_buffer[(until + 0x0002) as usize] = 0x00; // STOP 00
+                    rom_buffer[(until + 0x0001) as usize] = 0x10; //
+                }
+            }
+        }
 
         // TODO Should I check the ROM size? I don't think the real hardware does that
         // if rom_buffer[memory_map::OSIZ as usize] as usize != rom_buffer.len() {
@@ -60,9 +77,9 @@ impl Memory {
         //         rom_buffer[memory_map::OSIZ as usize],
         //         rom_buffer.len());
         // }
-        memory_size = 0xFFFF as usize;
+        memory_size = (0xFFFF as usize) + 1;
         ram_buffer = vec![0; memory_size];
-        debug_system!(format!("RAM Size: {}", ram_buffer.len()), debug_mode);
+        debug_system!(format!("RAM Size: {}\n", ram_buffer.len()), debug_mode);
 
         rom = ROM {
             data: rom_buffer,
@@ -78,13 +95,11 @@ impl Memory {
         Memory {
             rom: rom,
             ram: ram,
-            debug_mode: debug_mode,
         }
     }
 
     #[allow(unreachable_patterns)]
     pub fn fetch(&mut self, address: u16) -> u8 {
-        debug_system!(format!("memory[{:#06X}]", address), self.debug_mode);
         match address {
             // Internal / BOOT ROM (if enabled; external ROM otherwise)
             memory_map::IROM..=memory_map::IROX => {
@@ -119,7 +134,6 @@ impl Memory {
 
     #[allow(unreachable_patterns)]
     pub fn write(&mut self, address: u16, word: u8) {
-        debug_system!(format!("memory[{:#06X}]={:#04X}", address, word), self.debug_mode);
         match address {
             // Internal / BOOT ROM (if enabled; external ROM otherwise)
             memory_map::IROM..=memory_map::IROX => {},
@@ -142,7 +156,26 @@ impl Memory {
             // Un-used High RAM Area
             memory_map::RAM0..=memory_map::URAM => {},
             // Usable High RAM Area
-            memory_map::HRAM..=memory_map::RAM9 => self.ram.data[address as usize] = word,
+            memory_map::HRAM..=memory_map::RAM9 => {
+                if address == memory_map::DMGS && word == 0x01 {
+                    // it requested to disabled DMG (Boot) ROM
+                    self.ram.data[address as usize] = word;
+                    self.rom.boot_rom_enabled = false;
+                }
+
+                if address == memory_map::DMA {
+                    // perform DMA
+                    let start_address: u16 = (word as u16) << 8;
+                    let mut i: u16 = 0;
+                    while i < 0xA0 {
+                        self.ram.data[(memory_map::OAM0 | i) as usize] = self.ram.data[(start_address + i) as usize];
+                        i += 1;
+                    }
+                    return;
+                }
+
+                self.ram.data[address as usize] = word;
+            },
             // This is by definition unreachable, since the address (u16) maximum value is 0xFFFF
             _ => panic!("Unreachable area: ${:#02X}", address)
         }
