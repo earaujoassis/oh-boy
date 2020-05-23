@@ -4,14 +4,15 @@ use super::memory::Memory;
 use super::memory_map;
 use super::video::{Video, Mode, Frame};
 use super::interrupt::{Flag as InterruptFlag};
+use super::bit_operations;
 
-const MODE0_THRESHOLD: usize = 51;   // cycles per mode; 204 div 4
-const MODE1_THRESHOLD: usize = 1140; // 4560 div 4
-const MODE2_THRESHOLD: usize = 20;   // 80 div 4
-const MODE3_THRESHOLD: usize = 43;   // 172 div 4
+const MODE00_THRESHOLD: usize = 51;   // 204 div 4  -> HBLANK threshold
+const MODE01_THRESHOLD: usize = 1140; // 4560 div 4 -> VBLANK threshold
+const MODE10_THRESHOLD: usize = 20;   // 80 div 4   -> SEARCH_OAM threshold
+const MODE11_THRESHOLD: usize = 43;   // 172 div 4  -> SCANLINE threshold
 
 const VBLANK_LINES:           usize = 10;
-const VBLANK_CYCLES_PER_LINE: usize = MODE1_THRESHOLD / VBLANK_LINES;
+const VBLANK_CYCLES_PER_LINE: usize = MODE01_THRESHOLD / VBLANK_LINES;
 
 pub struct PPURegisters {
     // Memory Address Register (MAR)
@@ -52,10 +53,10 @@ impl PPU {
     //     ((10 -> 11 -> 00)+ -> 11 ->)+
     // It attempts to mimic the following diagram between Modes:
     //
-    //    Mode 10  x_____x_____x_____x_____x_____x_________________
-    //    Mode 11  _xx____xx____xx____xx____xx____xx_______________
-    //    Mode 00  ___xxx___xxx___xxx___xxx___xxx___xxx____________
-    //    Mode 01  ____________________________________xxxxxxxxxxxx
+    //    Mode 10  x_____x_____x_____x_____x_____x_________________  ->  Mode::SEARCH_OAM
+    //    Mode 11  _xx____xx____xx____xx____xx____xx_______________  ->  Mode::SCANLINE
+    //    Mode 00  ___xxx___xxx___xxx___xxx___xxx___xxx____________  ->  Mode::HBLANK
+    //    Mode 01  ____________________________________xxxxxxxxxxxx  ->  Mode::VBLANK
     //
     pub fn cycle(&mut self, memory: &mut Memory, cycles: usize) {
         // Check if the display is enabled from the LCDC flag (at RAM)
@@ -63,10 +64,11 @@ impl PPU {
             return;
         }
 
-        let current_stat = self.fetch_data(memory, memory_map::STAT);
-        let mut current_ly = self.fetch_data(memory, memory_map::LY);
-        let current_lyc = self.fetch_data(memory, memory_map::LYC);
-        let current_mode = current_stat & 0x03; // last 2 bits
+        let current_stat: u8 = self.fetch_data(memory, memory_map::STAT);
+        let clean_stat: u8 = 0xFC & current_stat; // 0b11111100 & current_stat
+        let mut current_ly: u8 = self.fetch_data(memory, memory_map::LY);
+        let current_lyc: u8 = self.fetch_data(memory, memory_map::LYC);
+        let current_mode: u8 = current_stat & 0x03; // last 2 bits
 
         let mut next_mode: u8 = current_mode;
         let mut next_stat: u8 = current_stat;
@@ -74,73 +76,83 @@ impl PPU {
 
         self.accumulated_cycles += cycles;
 
-        if current_ly >= Frame::HEIGHT as u8 && current_ly <= Frame::HEIGHT_FULL as u8 {
-            // This is Mode 01
-            next_mode = Mode::VBLANK as u8;     // 1
-            let clean_stat = (!(Mode::SEARCH_OAM as u8 | Mode::HBLANK as u8 | Mode::VBLANK as u8) & current_stat) & 0xFF;
-            next_stat = (clean_stat | (Mode::VBLANK as u8)) & 0xFF;
-            // Check if we're at VBLANK for the first time
-            if current_mode != next_mode {
-                self.accumulated_cycles = 0;
-            }
-            // If bit #4 at STAT is set, request interrupt
-            must_request_interrupt = (current_stat & 0x10) > 0;
-            let ly_checker = (self.accumulated_cycles / VBLANK_CYCLES_PER_LINE) as u8;
-            if current_ly - Frame::HEIGHT as u8 != ly_checker {
-                current_ly = Frame::HEIGHT as u8 + ly_checker;
-                memory.write(memory_map::LY, current_ly);
-            }
-        } else if self.accumulated_cycles > MODE1_THRESHOLD {
-            // Request Mode 10 next time
-            current_ly = 0x00;
-            memory.write(memory_map::LY, current_ly);
+        match current_mode {
+            // This handle Mode 01 | Mode VBLANK
+            current_mode if current_mode == Mode::VBLANK as u8 => {
+                if self.accumulated_cycles > MODE01_THRESHOLD || current_ly >= Frame::HEIGHT_FULL as u8 {
+                    // Request SEARCH_OAM
+                    next_mode = Mode::SEARCH_OAM as u8;
+                    next_stat = (clean_stat | (Mode::SEARCH_OAM as u8)) & 0xFF;
+                    self.accumulated_cycles = 0;
+                    memory.write(memory_map::LY, 0x00);
+                } else {
+                    // We must update the LY inside the VBLANK according to the VBLANK step
+                    let ly_checker = (self.accumulated_cycles / VBLANK_CYCLES_PER_LINE) as u8;
+                    current_ly = Frame::HEIGHT as u8 + ly_checker;
+                    memory.write(memory_map::LY, current_ly);
+                }
+            },
+            // This handle Mode 10 | Mode SEARCH_OAM
+            current_mode if current_mode == Mode::SEARCH_OAM as u8 => {
+                if self.accumulated_cycles > MODE10_THRESHOLD {
+                    // Request SCANLINE
+                    next_mode = Mode::SCANLINE as u8;
+                    next_stat = (clean_stat | (Mode::SCANLINE as u8)) & 0xFF;
+                    self.accumulated_cycles = 0;
+                }
+            },
+            // This handle Mode 11 | Mode SCANLINE
+            current_mode if current_mode == Mode::SCANLINE as u8 => {
+                if self.accumulated_cycles > MODE11_THRESHOLD {
+                    // Request HBLANK
+                    next_mode = Mode::HBLANK as u8;
+                    next_stat = (clean_stat | (Mode::HBLANK as u8)) & 0xFF;
+                    self.accumulated_cycles = 0;
+                    // It is the end of the scanline, so we can request to update the whole line
+                    self.video.update_scanline(memory);
+                    current_ly = self.fetch_data(memory, memory_map::LY);
+                    // If bit #3 at STAT is set, request interrupt
+                    must_request_interrupt = bit_operations::simple_bit(next_stat, 3);
+                }
+            },
+            // This handle Mode 00 | Mode HBLANK
+            current_mode if current_mode == Mode::HBLANK as u8 => {
+                if self.accumulated_cycles > MODE00_THRESHOLD {
+                    if current_ly >= Frame::HEIGHT as u8 {
+                        // Request VBLANK
+                        next_mode = Mode::VBLANK as u8;
+                        next_stat = (clean_stat | (Mode::VBLANK as u8)) & 0xFF;
+                        // If bit #4 at STAT is set, request interrupt
+                        must_request_interrupt = bit_operations::simple_bit(next_stat, 4);
+                        request_interrupt(self, memory, InterruptFlag::VBLANK);
+                    } else {
+                        // Request SEARCH_OAM
+                        next_mode = Mode::SEARCH_OAM as u8;
+                        next_stat = (clean_stat | (Mode::SEARCH_OAM as u8)) & 0xFF;
+                        // If bit #5 at STAT is set, request interrupt
+                        must_request_interrupt = bit_operations::simple_bit(next_stat, 5);
+                    }
+                    self.accumulated_cycles = 0;
+                }
+            },
+            _ => panic!("Oops!... there's a bug at the PPU; mode: {:#04X}", current_mode),
         }
 
-        if self.accumulated_cycles < MODE2_THRESHOLD
-                && current_ly < Frame::HEIGHT as u8 {
-            // This is Mode 10
-            next_mode = Mode::SEARCH_OAM as u8; // 2
-            next_stat = ((!(Mode::VBLANK as u8 | Mode::SCANLINE as u8) & current_stat) | (Mode::SEARCH_OAM as u8)) & 0xFF;
-            // If bit #5 at STAT is set, request interrupt
-            must_request_interrupt = (current_stat & 0x20) > 0;
-        } else if self.accumulated_cycles > MODE2_THRESHOLD
-                && self.accumulated_cycles < MODE2_THRESHOLD + MODE3_THRESHOLD
-                && current_ly < Frame::HEIGHT as u8 {
-            // This is Mode 11
-            next_mode = Mode::SCANLINE as u8;   // 3
-            next_stat = (current_stat | (Mode::SCANLINE as u8)) & 0xFF;
-        } else if self.accumulated_cycles > MODE2_THRESHOLD + MODE3_THRESHOLD
-                && self.accumulated_cycles < MODE0_THRESHOLD + MODE2_THRESHOLD + MODE3_THRESHOLD
-                && current_ly < Frame::HEIGHT as u8 {
-            // This is Mode 00
-            next_mode = Mode::HBLANK as u8;     // 0
-            // Check if we're at HBLANK for the first time
-            if next_mode != current_mode {
-                // At HBLANK all transfers (the whole scanline) have been completed;
-                // so it is a good moment for the emulator to update buffer
-                self.video.update_scanline(memory);
-                current_ly = self.fetch_data(memory, memory_map::LY);
-            }
-            next_stat = (!(Mode::SCANLINE as u8) & current_stat) & 0xFF;
-            // If bit #3 at STAT is set, request interrupt
-            must_request_interrupt = (current_stat & 0x08) > 0;
-        } else if self.accumulated_cycles >  MODE0_THRESHOLD + MODE2_THRESHOLD + MODE3_THRESHOLD
-                && current_ly < Frame::HEIGHT as u8 {
-            // Request Mode 10 next time
-            self.accumulated_cycles = 0;
-        }
+        debug_system!(format!("PPU   : MODE={:#04X} NEXT-MODE={:#04X} LY={:#04X}\n",
+            current_mode, next_mode, current_ly),
+                self.debug_mode);
 
         if must_request_interrupt && (next_mode != current_mode) {
             request_interrupt(self, memory, InterruptFlag::LCDC);
         }
 
         if current_ly == current_lyc {
-            next_stat = next_stat | 0x04;
-            if (next_stat & 0x40) > 0 {
+            next_stat = next_stat | 0x04; // Set Match Flag (LYC = LCDCLY)
+            if bit_operations::simple_bit(next_stat, 6) {
                 request_interrupt(self, memory, InterruptFlag::LCDC);
             }
         } else {
-            next_stat = next_stat & !(0x40 as u8);
+            next_stat = next_stat & !(0x40 as u8); // Reset Match Flag (LYC != LCDCLY)
         }
 
         self.write_data(memory, memory_map::STAT, next_stat);
