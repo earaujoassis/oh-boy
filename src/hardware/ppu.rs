@@ -5,10 +5,10 @@ use super::memory_map;
 use super::video::{Video, Mode, Frame};
 use super::interrupt::{Flag as InterruptFlag};
 
-const MODE0_THRESHOLD: usize = 51;   // cycles per mode; 204
-const MODE1_THRESHOLD: usize = 1140; // 4560
-const MODE2_THRESHOLD: usize = 80;   // 80
-const MODE3_THRESHOLD: usize = 43;   // 172
+const MODE0_THRESHOLD: usize = 51;   // cycles per mode; 204 div 4
+const MODE1_THRESHOLD: usize = 1140; // 4560 div 4
+const MODE2_THRESHOLD: usize = 20;   // 80 div 4
+const MODE3_THRESHOLD: usize = 43;   // 172 div 4
 
 const VBLANK_LINES:           usize = 10;
 const VBLANK_CYCLES_PER_LINE: usize = MODE1_THRESHOLD / VBLANK_LINES;
