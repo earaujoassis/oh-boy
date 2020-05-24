@@ -2,6 +2,10 @@
 
 > GameBoy emulator written in Rust
 
+![](data/gameboy-emulator.gif)
+
+> Current status: booting emulator, with initial Video emulation
+
 ## Setup & Running
 
 You can either `cargo run` the current project (for debugging) or you can `cargo install --path <path>`
