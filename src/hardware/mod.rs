@@ -1,7 +1,3 @@
-#[allow(dead_code)]
-const DEBUG_MODE_UNDEFINED: u8 = 0x01;
-const DEBUG_MODE_DMG_ONLY: u8 = 0x02;
-
 #[macro_use]
 mod debug_macros;
 

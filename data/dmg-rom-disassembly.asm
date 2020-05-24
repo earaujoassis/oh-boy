@@ -20,7 +20,7 @@ Addr_0007:
     LD (HL-),A          ; $0019
     LD A,$77            ; $001A
     LD (HL),A           ; $001C
-    LD A,$FC            ; $001D  Setup BG palette
+    LD A,$FC            ; $001D  Setup BG Palette
     LD ($FF00+$47),A    ; $001F
     LD DE,$0104         ; $0021  Convert and load logo data from cart into Video RAM
     LD HL,$8010         ; $0024

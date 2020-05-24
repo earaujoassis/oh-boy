@@ -2,7 +2,7 @@ use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::render::WindowCanvas;
-use sdl2::rect::{Rect, Point};
+use sdl2::rect::Rect;
 use sdl2::Sdl;
 
 use std::time::{Duration, Instant};
@@ -67,7 +67,8 @@ impl EmulatorContext {
             while emulated_cycles < CYCLES_PER_FRAME {
                 emulated_cycles += self.hardware.cycle() as u32;
                 if self.hardware.has_stopped() {
-                    break 'running
+                    // break 'running
+                    // Keep windown open
                 }
             }
 
@@ -79,34 +80,28 @@ impl EmulatorContext {
 
             self.update_canvas();
         }
-
-        self.hardware.dump();
     }
 
     #[allow(unused_must_use)]
     pub fn update_canvas(&mut self) {
         let buffer: Vec<u8> = self.hardware.video_buffer();
-        let capacity = buffer.capacity();
-        let mut i = 0;
 
         self.canvas.set_draw_color(Color::RGBA(255, 255, 255, 255));
         self.canvas.clear();
 
-        while i < capacity {
-            let color = match buffer[i] {
-                0x01 => Color::RGB(255, 255, 255),
-                0x02 => Color::RGB(198, 198, 198),
-                0x04 => Color::RGB(127, 127, 127),
-                0x08 => Color::RGB(127, 127, 127),
-                _    => Color::RGBA(255, 255, 255, 0),
-            };
-            let x = i / 144;
-            let y = i % 144;
+        for y in 0..144 {
+            for x in 0..160 {
+                let color = match buffer[y * 160 + x] {
+                    0x00 => Color::RGB(255, 255, 255),
+                    0x01 => Color::RGB(198, 198, 198),
+                    0x02 => Color::RGB(127, 127, 127),
+                    0x03 => Color::RGB(27, 27, 27),
+                    _    => panic!("Unrecognized color: {:#04X}", buffer[y * 160 + x]),
+                };
 
-            self.canvas.set_draw_color(color);
-            self.canvas.fill_rect(Rect::from_center(Point::new(x as i32 + 4, y as i32 + 4), 8, 8));
-
-            i += 1;
+                self.canvas.set_draw_color(color);
+                self.canvas.fill_rect(Rect::new(x as i32, y as i32, 1, 1));
+            }
         }
 
         self.canvas.present();

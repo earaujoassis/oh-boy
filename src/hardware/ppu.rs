@@ -27,6 +27,7 @@ pub struct PPU {
     pub accumulated_cycles: usize,
     pub update_buffer: bool,
     pub debug_mode: bool,
+    pub scanline_requested: bool,
 }
 
 impl PPU {
@@ -45,6 +46,7 @@ impl PPU {
             accumulated_cycles: 0,
             update_buffer: true,
             debug_mode: debug_mode,
+            scanline_requested: false,
         }
     }
 
@@ -74,6 +76,7 @@ impl PPU {
         let mut next_stat: u8 = current_stat;
         let mut must_request_interrupt: bool = false;
 
+        self.scanline_requested = false;
         self.accumulated_cycles += cycles;
 
         match current_mode {
@@ -111,6 +114,7 @@ impl PPU {
                     // It is the end of the scanline, so we can request to update the whole line
                     self.video.update_scanline(memory);
                     current_ly = self.fetch_data(memory, memory_map::LY);
+                    self.scanline_requested = true;
                     // If bit #3 at STAT is set, request interrupt
                     must_request_interrupt = bit_operations::simple_bit(next_stat, 3);
                 }

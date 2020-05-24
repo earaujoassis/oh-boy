@@ -6,8 +6,6 @@ use std::fs::File;
 use super::memory_map;
 use super::cartridge_types;
 
-use super::DEBUG_MODE_DMG_ONLY;
-
 pub struct ROM {
     boot_rom_data: Vec<u8>,
     data: Vec<u8>,
@@ -51,23 +49,17 @@ impl Memory {
 
         boot_rom_file.read_to_end(&mut boot_rom_buffer).expect("Could not load BOOT ROM file; aborting");
         debug_system!(format!("Cartridge type: {:#04X}\n", rom_cartridge_type), debug_mode);
-        if debug_mode_integer!() == DEBUG_MODE_DMG_ONLY {
-            const STOP_AT: u16 = memory_map::IROZ;
-            rom_buffer[STOP_AT as usize] = 0x00; // NOP
-            rom_buffer[(STOP_AT + 0x0002) as usize] = 0x00; // STOP 00
-            rom_buffer[(STOP_AT + 0x0001) as usize] = 0x10; //
 
-            let until: u16 = debug_mode_until!();
-            if until != 0xFFFF {
-                if until < memory_map::IROX {
-                    boot_rom_buffer[until as usize] = 0x00; // NOP
-                    boot_rom_buffer[(until + 0x0002) as usize] = 0x00; // STOP 00
-                    boot_rom_buffer[(until + 0x0001) as usize] = 0x10; //
-                } else {
-                    rom_buffer[until as usize] = 0x00; // NOP
-                    rom_buffer[(until + 0x0002) as usize] = 0x00; // STOP 00
-                    rom_buffer[(until + 0x0001) as usize] = 0x10; //
-                }
+        let until: u16 = debug_until!();
+        if until != 0xFFFF {
+            if until < memory_map::IROX {
+                boot_rom_buffer[until as usize] = 0x00; // NOP
+                boot_rom_buffer[(until + 0x0002) as usize] = 0x00; // STOP 00
+                boot_rom_buffer[(until + 0x0001) as usize] = 0x10; //
+            } else {
+                rom_buffer[until as usize] = 0x00; // NOP
+                rom_buffer[(until + 0x0002) as usize] = 0x00; // STOP 00
+                rom_buffer[(until + 0x0001) as usize] = 0x10; //
             }
         }
 
