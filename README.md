@@ -1,6 +1,6 @@
-# GameBoy Emulator
+# NINTENDO&reg; GameBoy&trade; Emulator
 
-> GameBoy emulator written in Rust
+> NINTENDO&reg; GameBoy&trade; emulator written in Rust
 
 ## Setup & Running
 
@@ -30,6 +30,6 @@ Please take a look at [/issues](https://github.com/earaujoassis/gameboy-emulator
 ## License
 
 "GAME BOY" and "NINTENDO" are trademarks of NINTENDO OF AMERICA, INC. This current project
-has the sole purpose of testing and studying Computer Organization and Architecture. The
+has the sole purpose of testing and studying Computer Architecture and Organization. The
 code here presented is licensed under the [MIT License](http://earaujoassis.mit-license.org/).
 Copyright &copy; Ewerton Carlos Assis.
