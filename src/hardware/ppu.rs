@@ -2,7 +2,8 @@
 
 use super::memory::Memory;
 use super::memory_map;
-use super::video::{Video, Mode, Frame};
+use super::video::{Video, FRAME_HEIGHT, FRAME_HEIGHT_FULL};
+use super::video_mode;
 use super::interrupt::{Flag as InterruptFlag};
 use super::bit_operations;
 
@@ -27,7 +28,6 @@ pub struct PPU {
     pub accumulated_cycles: usize,
     pub update_buffer: bool,
     pub debug_mode: bool,
-    pub scanline_requested: bool,
 }
 
 impl PPU {
@@ -46,7 +46,6 @@ impl PPU {
             accumulated_cycles: 0,
             update_buffer: true,
             debug_mode: debug_mode,
-            scanline_requested: false,
         }
     }
 
@@ -55,10 +54,10 @@ impl PPU {
     //     ((10 -> 11 -> 00)+ -> 11 ->)+
     // It attempts to mimic the following diagram between Modes:
     //
-    //    Mode 10  x_____x_____x_____x_____x_____x_________________  ->  Mode::SEARCH_OAM
-    //    Mode 11  _xx____xx____xx____xx____xx____xx_______________  ->  Mode::SCANLINE
-    //    Mode 00  ___xxx___xxx___xxx___xxx___xxx___xxx____________  ->  Mode::HBLANK
-    //    Mode 01  ____________________________________xxxxxxxxxxxx  ->  Mode::VBLANK
+    //    Mode 10  x_____x_____x_____x_____x_____x_________________  ->  video_mode::SEARCH_OAM
+    //    Mode 11  _xx____xx____xx____xx____xx____xx_______________  ->  video_mode::SCANLINE
+    //    Mode 00  ___xxx___xxx___xxx___xxx___xxx___xxx____________  ->  video_mode::HBLANK
+    //    Mode 01  ____________________________________xxxxxxxxxxxx  ->  video_mode::VBLANK
     //
     pub fn cycle(&mut self, memory: &mut Memory, cycles: usize) {
         // Check if the display is enabled from the LCDC flag (at RAM)
@@ -76,63 +75,61 @@ impl PPU {
         let mut next_stat: u8 = current_stat;
         let mut must_request_interrupt: bool = false;
 
-        self.scanline_requested = false;
         self.accumulated_cycles += cycles;
 
         match current_mode {
             // This handle Mode 01 | Mode VBLANK
-            current_mode if current_mode == Mode::VBLANK as u8 => {
-                if self.accumulated_cycles > MODE01_THRESHOLD || current_ly >= Frame::HEIGHT_FULL as u8 {
+            current_mode if current_mode == video_mode::VBLANK => {
+                if self.accumulated_cycles > MODE01_THRESHOLD || current_ly >= FRAME_HEIGHT_FULL as u8 {
                     // Request SEARCH_OAM
-                    next_mode = Mode::SEARCH_OAM as u8;
-                    next_stat = (clean_stat | (Mode::SEARCH_OAM as u8)) & 0xFF;
+                    next_mode = video_mode::SEARCH_OAM;
+                    next_stat = (clean_stat | video_mode::SEARCH_OAM) & 0xFF;
                     self.accumulated_cycles = 0;
                     memory.write(memory_map::LY, 0x00);
                 } else {
                     // We must update the LY inside the VBLANK according to the VBLANK step
                     let ly_checker = (self.accumulated_cycles / VBLANK_CYCLES_PER_LINE) as u8;
-                    current_ly = Frame::HEIGHT as u8 + ly_checker;
+                    current_ly = FRAME_HEIGHT as u8 + ly_checker;
                     memory.write(memory_map::LY, current_ly);
                 }
             },
             // This handle Mode 10 | Mode SEARCH_OAM
-            current_mode if current_mode == Mode::SEARCH_OAM as u8 => {
+            current_mode if current_mode == video_mode::SEARCH_OAM => {
                 if self.accumulated_cycles > MODE10_THRESHOLD {
                     // Request SCANLINE
-                    next_mode = Mode::SCANLINE as u8;
-                    next_stat = (clean_stat | (Mode::SCANLINE as u8)) & 0xFF;
+                    next_mode = video_mode::SCANLINE;
+                    next_stat = (clean_stat | video_mode::SCANLINE) & 0xFF;
                     self.accumulated_cycles = 0;
                 }
             },
             // This handle Mode 11 | Mode SCANLINE
-            current_mode if current_mode == Mode::SCANLINE as u8 => {
+            current_mode if current_mode == video_mode::SCANLINE => {
                 if self.accumulated_cycles > MODE11_THRESHOLD {
                     // Request HBLANK
-                    next_mode = Mode::HBLANK as u8;
-                    next_stat = (clean_stat | (Mode::HBLANK as u8)) & 0xFF;
+                    next_mode = video_mode::HBLANK;
+                    next_stat = (clean_stat | video_mode::HBLANK) & 0xFF;
                     self.accumulated_cycles = 0;
                     // It is the end of the scanline, so we can request to update the whole line
                     self.video.update_scanline(memory);
                     current_ly = self.fetch_data(memory, memory_map::LY);
-                    self.scanline_requested = true;
                     // If bit #3 at STAT is set, request interrupt
                     must_request_interrupt = bit_operations::simple_bit(next_stat, 3);
                 }
             },
             // This handle Mode 00 | Mode HBLANK
-            current_mode if current_mode == Mode::HBLANK as u8 => {
+            current_mode if current_mode == video_mode::HBLANK => {
                 if self.accumulated_cycles > MODE00_THRESHOLD {
-                    if current_ly >= Frame::HEIGHT as u8 {
+                    if current_ly >= FRAME_HEIGHT as u8 {
                         // Request VBLANK
-                        next_mode = Mode::VBLANK as u8;
-                        next_stat = (clean_stat | (Mode::VBLANK as u8)) & 0xFF;
+                        next_mode = video_mode::VBLANK;
+                        next_stat = (clean_stat | video_mode::VBLANK) & 0xFF;
                         // If bit #4 at STAT is set, request interrupt
                         must_request_interrupt = bit_operations::simple_bit(next_stat, 4);
                         request_interrupt(self, memory, InterruptFlag::VBLANK);
                     } else {
                         // Request SEARCH_OAM
-                        next_mode = Mode::SEARCH_OAM as u8;
-                        next_stat = (clean_stat | (Mode::SEARCH_OAM as u8)) & 0xFF;
+                        next_mode = video_mode::SEARCH_OAM;
+                        next_stat = (clean_stat | video_mode::SEARCH_OAM) & 0xFF;
                         // If bit #5 at STAT is set, request interrupt
                         must_request_interrupt = bit_operations::simple_bit(next_stat, 5);
                     }

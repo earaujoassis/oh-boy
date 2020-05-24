@@ -43,8 +43,4 @@ impl System {
         self.cpu.stopped
     }
 
-    pub fn scanline_requested(&mut self) -> bool {
-        self.ppu.scanline_requested
-    }
-
 }

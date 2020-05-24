@@ -15,3 +15,4 @@ pub mod ppu;
 pub mod system;
 pub mod disassembler;
 pub mod video;
+pub mod video_mode;

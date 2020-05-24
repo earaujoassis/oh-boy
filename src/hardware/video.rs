@@ -6,37 +6,23 @@ pub const FRAME_WIDTH        : usize = 160;
 pub const FRAME_HEIGHT       : usize = 144;
 pub const FRAME_HEIGHT_FULL  : usize = 154;
 
-pub const BG_DIMENSION       : u16 = 256; // background dimension
-pub const BG_BLOCKS_PER_AXIS : u16 = 32;
-pub const TILE_DIMENSION     : u8 = 8;
+#[allow(dead_code)]
+const BG_DIMENSION       : u16 = 256; // background dimension
+const BG_BLOCKS_PER_AXIS : u16 = 32;
+const TILE_DIMENSION     : u8 = 8;
 
-pub const CODE_AREA0         : u16 = 0x9800; // 9800h-9BFFh
-pub const CODE_AREA1         : u16 = 0x9C00; // 9C00h-9FFFh
+const CODE_AREA0         : u16 = 0x9800; // 9800h-9BFFh
+const CODE_AREA1         : u16 = 0x9C00; // 9C00h-9FFFh
 
-pub const CHARACTER_DATA0    : u16 = 0x8800; // 8800h-97FFh
-pub const CHARACTER_DATA1    : u16 = 0x8000; // 8000h-8FFFh
+const CHARACTER_DATA0    : u16 = 0x8800; // 8800h-97FFh
+const CHARACTER_DATA1    : u16 = 0x8000; // 8000h-8FFFh
 
-pub const TILE_ROW_PIXELS    : u16 = 16; // (or 2 bytes of data for each tile row)
-pub const TILE_ROW_OFFSET    : u16 = 2;
+const TILE_ROW_PIXELS    : u16 = 16; // (or 2 bytes of data for each tile row)
+const TILE_ROW_OFFSET    : u16 = 2;
 
 pub struct Video {
     pub frame_buffer: Vec<u8>,
     pub scanline_pixels_rendered: usize,
-}
-
-#[allow(non_camel_case_types)]
-pub enum Mode {
-    HBLANK      = 0x00,
-    VBLANK      = 0x01,
-    SEARCH_OAM  = 0x02,
-    SCANLINE    = 0x03,
-}
-
-#[allow(non_camel_case_types)]
-pub enum Frame {
-    WIDTH       = FRAME_WIDTH as isize,
-    HEIGHT      = FRAME_HEIGHT as isize,
-    HEIGHT_FULL = FRAME_HEIGHT_FULL as isize,
 }
 
 impl Video {
