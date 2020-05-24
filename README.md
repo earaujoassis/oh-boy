@@ -2,18 +2,16 @@
 
 > GameBoy emulator written in Rust
 
-![](data/gameboy-emulator.gif)
-
-> Current status: booting emulator, with initial Video emulation
-
 ## Setup & Running
 
 You can either `cargo run` the current project (for debugging) or you can `cargo install --path <path>`
 this project (and its compiled binary).
 
-## Issues
+## Current Status
 
-Please take a look at [/issues](https://github.com/earaujoassis/gameboy-emulator/issues)
+> Booting emulator, with initial Video emulation
+
+![](data/gameboy-emulator.gif)
 
 ## Development steps
 
@@ -24,6 +22,10 @@ Please take a look at [/issues](https://github.com/earaujoassis/gameboy-emulator
 * [ ] Audio
 * [ ] Tunning, Optimization, and Compliance to the original hardware
 * [ ] Bluetooth Joystick (PS4 DualShock 4)
+
+## Issues
+
+Please take a look at [/issues](https://github.com/earaujoassis/gameboy-emulator/issues)
 
 ## License
 
