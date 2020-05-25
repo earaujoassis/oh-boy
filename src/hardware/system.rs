@@ -1,6 +1,7 @@
 use super::cpu::CPU;
 use super::ppu::PPU;
 use super::memory::Memory;
+use super::memory_map;
 
 pub struct System {
     cpu: CPU,
@@ -37,6 +38,10 @@ impl System {
     pub fn video_buffer(&mut self) -> Vec<u8> {
         let buffer = self.ppu.video.frame_buffer.clone();
         buffer
+    }
+
+    pub fn video_mode(&mut self) -> u8 {
+        (self.memory.fetch(memory_map::LCDC) & 0x03) & 0xFF
     }
 
     pub fn has_stopped(&mut self) -> bool {

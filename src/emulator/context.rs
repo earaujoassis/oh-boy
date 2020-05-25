@@ -31,7 +31,10 @@ impl EmulatorContext {
             .position_centered()
             .build()
             .unwrap();
-        let mut canvas = window.into_canvas().build().unwrap();
+        let mut canvas = window.into_canvas()
+            .present_vsync()
+            .build()
+            .unwrap();
 
         canvas.set_draw_color(Color::RGB(255, 255, 255));
         canvas.clear();
@@ -78,7 +81,10 @@ impl EmulatorContext {
                 thread::sleep(remaining_time);
             }
 
-            self.update_canvas();
+            // Update the whole canvas on VBLANK only
+            if self.hardware.video_mode() == ::hardware::video_mode::VBLANK {
+                self.update_canvas();
+            }
         }
     }
 

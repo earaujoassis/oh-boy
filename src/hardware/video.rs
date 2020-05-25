@@ -73,7 +73,7 @@ impl Video {
             };
 
             // Obtain the tile row (y-axis) to render
-            let tile_row = ly % TILE_DIMENSION;
+            let tile_row = (scy + ly) % TILE_DIMENSION;
             // Each BG Character Data (8x8 pixels Tile) is stored as a 16 bytes, each 2 bytes
             // representing a row (the `TILE_ROW_PIXELS`)
             // Check the "BG Character Data Selection Flag" to establish the Character Data Bank
