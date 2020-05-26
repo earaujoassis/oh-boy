@@ -175,7 +175,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let carry_flag = if (d16 & 0xFF) < (sp & 0xFF) { flags::CARRY } else { flags::RESET };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
-            cpu.registers.r_f = (half_carry_flag | carry_flag) as u8;
+            cpu.registers.r_f = ((half_carry_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
             3
         },
         /* LD SP,HL */ 0xF9 => {
@@ -228,7 +228,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let carry_flag = if d16_hl > 0xFFFF - d16_bc { flags::CARRY } else { flags::RESET };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
-            cpu.registers.r_f = (zero_flag | half_carry_flag | carry_flag) as u8;
+            cpu.registers.r_f = ((zero_flag | half_carry_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
             2
         },
         /* ADD HL,DE */ 0x19 => {
@@ -242,7 +242,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let carry_flag = if d16_hl > 0xFFFF - d16_de { flags::CARRY } else { flags::RESET };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
-            cpu.registers.r_f = (zero_flag | half_carry_flag | carry_flag) as u8;
+            cpu.registers.r_f = ((zero_flag | half_carry_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
             2
         },
         /* ADD HL,HL */ 0x29 => {
@@ -269,7 +269,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let carry_flag = if d16_hl > 0xFFFF - d16_sp { flags::CARRY } else { flags::RESET };
             cpu.registers.r_h = bit_operations::msb(d16, 8);
             cpu.registers.r_l = bit_operations::lsb(d16, 8);
-            cpu.registers.r_f = (zero_flag | half_carry_flag | carry_flag) as u8;
+            cpu.registers.r_f = ((zero_flag | half_carry_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
             2
         },
         /* DEC BC */ 0x0B => {
@@ -314,7 +314,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let half_carry_flag = if (d16 & 0xF) < (sp & 0xF) { flags::HALF_CARRY } else { flags::RESET };
             let carry_flag = if (d16 & 0xFF) < (sp & 0xFF) { flags::CARRY } else { flags::RESET };
             cpu.registers.stack_pointer = d16;
-            cpu.registers.r_f = (half_carry_flag | carry_flag) as u8;
+            cpu.registers.r_f = ((half_carry_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
             4
         },
         /* JR Z,r8 */ 0x28 => {
@@ -1733,7 +1733,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let subtract_flag = cpu.registers.r_f & flags::SUBTRACT; // keep its value
             // let half_carry_flag = flags::RESET; -> this is implied; reset
             let carry_flag = if adjust >= 0x60 { flags::CARRY } else { flags::RESET };
-            cpu.registers.r_f = (zero_flag | subtract_flag | carry_flag) as u8;
+            cpu.registers.r_f = ((zero_flag | subtract_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
             cpu.registers.r_a = register_data;
             1
         },
@@ -1744,7 +1744,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             let subtract_flag = flags::SUBTRACT; // -> this is set
             let half_carry_flag = flags::HALF_CARRY; // -> this is set
             let carry_flag = cpu.registers.r_f & flags::CARRY; // keep its value
-            cpu.registers.r_f = (zero_flag | subtract_flag | half_carry_flag | carry_flag) as u8;
+            cpu.registers.r_f = ((zero_flag | subtract_flag | half_carry_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
             1
         },
         /* SCF */ 0x37 => {
@@ -1753,7 +1753,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             // let subtract_flag = flags::RESET; -> this is implied; reset
             // let half_carry_flag = flags::RESET; -> this is implied; reset
             let carry_flag = flags::CARRY; // -> this is set
-            cpu.registers.r_f = (zero_flag | carry_flag) as u8;
+            cpu.registers.r_f = ((zero_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
             1
         },
         /* CCF */ 0x3F => {
@@ -1762,34 +1762,34 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             // let subtract_flag = flags::RESET; -> this is implied; reset
             // let half_carry_flag = flags::RESET; -> this is implied; reset
             let carry_flag = if (cpu.registers.r_f & flags::CARRY) > 0 { flags::RESET } else { flags::CARRY };
-            cpu.registers.r_f = (zero_flag | carry_flag) as u8;
+            cpu.registers.r_f = ((zero_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
             1
         },
         /* RLCA */ 0x07 => {
             debug_system!("RLCA\n", cpu.debug_mode);
             let (register_data, register_flags) = bit_operations::rotate_left_carry(cpu.registers.r_a, cpu.registers.r_f);
-            cpu.registers.r_f = (register_flags & flags::CARRY) as u8;
+            cpu.registers.r_f = ((register_flags & flags::CARRY) as u8) & 0xF0; // the last 4-bits must be set to zero
             cpu.registers.r_a = register_data;
             1
         },
         /* RLA */ 0x17 => {
             debug_system!("RLA\n", cpu.debug_mode);
             let (register_data, register_flags) = bit_operations::rotate_left(cpu.registers.r_a, cpu.registers.r_f);
-            cpu.registers.r_f = (register_flags & flags::CARRY) as u8;
+            cpu.registers.r_f = ((register_flags & flags::CARRY) as u8) & 0xF0; // the last 4-bits must be set to zero
             cpu.registers.r_a = register_data;
             1
         },
         /* RRCA */ 0x0F => {
             debug_system!("RRCA\n", cpu.debug_mode);
             let (register_data, register_flags) = bit_operations::rotate_right_carry(cpu.registers.r_a, cpu.registers.r_f);
-            cpu.registers.r_f = (register_flags & flags::CARRY) as u8;
+            cpu.registers.r_f = ((register_flags & flags::CARRY) as u8) & 0xF0; // the last 4-bits must be set to zero
             cpu.registers.r_a = register_data;
             1
         },
         /* RRA */ 0x1F => {
             debug_system!("RRA\n", cpu.debug_mode);
             let (register_data, register_flags) = bit_operations::rotate_right(cpu.registers.r_a, cpu.registers.r_f);
-            cpu.registers.r_f = (register_flags & flags::CARRY) as u8;
+            cpu.registers.r_f = ((register_flags & flags::CARRY) as u8) & 0xF0; // the last 4-bits must be set to zero
             cpu.registers.r_a = register_data;
             1
         },

@@ -66,7 +66,7 @@ impl Video {
             let local_x = if x > BG_BLOCKS_PER_AXIS as u8 { x - BG_BLOCKS_PER_AXIS as u8 } else { x };
             let local_y = if y > BG_BLOCKS_PER_AXIS as u8 { y - BG_BLOCKS_PER_AXIS as u8 } else { y };
             let block_id: u16 = ((local_y as u16 * BG_BLOCKS_PER_AXIS as u16) + local_x as u16) as u16;
-            // Check the "BG Code Area Selection Flag" and obtain  the BG Character Code
+            // Check the "BG Code Area Selection Flag" and obtain the BG Character Code
             let character_code: u8 = match bit_operations::simple_bit(lcdc, 3) {
                 true  => memory.fetch(CODE_AREA1 + block_id),
                 false => memory.fetch(CODE_AREA0 + block_id),
@@ -74,9 +74,9 @@ impl Video {
 
             // Obtain the tile row (y-axis) to render
             let tile_row = (scy + ly) % TILE_DIMENSION;
-            // Each BG Character Data (8x8 pixels Tile) is stored as a 16 bytes, each 2 bytes
-            // representing a row (the `TILE_ROW_PIXELS`)
-            // Check the "BG Character Data Selection Flag" to establish the Character Data Bank
+            // Each BG Character Data (8x8 pixels Tile) is stored in 16 bytes, each 2 bytes representing a row
+            // (the `TILE_ROW_PIXELS`). The "BG Character Data Selection Flag" establish the Character Data
+            // Bank to obtain each word (each byte).
             let character_data_offset: u16 = match bit_operations::simple_bit(lcdc, 4) {
                 true  => (CHARACTER_DATA1 + (character_code as u16 * TILE_ROW_PIXELS)),
                 false => ((CHARACTER_DATA0 + 0x800) as i32 + (character_code as i32 * TILE_ROW_PIXELS as i32)) as u16,

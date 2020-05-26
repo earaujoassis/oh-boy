@@ -22,7 +22,7 @@ pub fn increment(cpu: &mut CPU, register_data: u8) -> u8 {
     // let subtract_flag = flags::RESET; -> this is implied; reset
     let half_carry_flag = if (register_data & 0xF) + 1 > 0xF { flags::HALF_CARRY } else { flags::RESET };
     let carry_flag = cpu.registers.r_f & flags::CARRY; // keep its value
-    cpu.registers.r_f = (zero_flag | half_carry_flag | carry_flag) as u8;
+    cpu.registers.r_f = ((zero_flag | half_carry_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
     d8
 }
 
@@ -32,7 +32,7 @@ pub fn decrement(cpu: &mut CPU, register_data: u8) -> u8 {
     let subtract_flag = flags::SUBTRACT;
     let half_carry_flag = if ((register_data & 0xF) as i16) - 1 < 0 { flags::HALF_CARRY } else { flags::RESET };
     let carry_flag = cpu.registers.r_f & flags::CARRY; // keep its value
-    cpu.registers.r_f = (zero_flag | subtract_flag | half_carry_flag | carry_flag) as u8;
+    cpu.registers.r_f = ((zero_flag | subtract_flag | half_carry_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
     d8
 }
 
@@ -43,7 +43,7 @@ pub fn add(cpu: &mut CPU, data: u8) {
     // let subtract_flag = flags::RESET; -> this is implied; reset
     let half_carry_flag = if (register_data & 0xF) + (data & 0xF) > 0xF { flags::HALF_CARRY } else { flags::RESET };
     let carry_flag = if (register_data as i16) + (data as i16) > 0xFF { flags::CARRY } else { flags::RESET };
-    cpu.registers.r_f = (zero_flag | half_carry_flag | carry_flag) as u8;
+    cpu.registers.r_f = ((zero_flag | half_carry_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
     cpu.registers.r_a = d8;
 }
 
@@ -55,7 +55,7 @@ pub fn add_carry(cpu: &mut CPU, data: u8) {
     // let subtract_flag = flags::RESET; -> this is implied; reset
     let half_carry_flag = if (register_data & 0xF) + (data & 0xF) + (carry & 0xF) > 0xF { flags::HALF_CARRY } else { flags::RESET };
     let carry_flag = if (register_data as i16) + (data as i16) + (carry as i16) > 0xFF { flags::CARRY } else { flags::RESET };
-    cpu.registers.r_f = (zero_flag | half_carry_flag | carry_flag) as u8;
+    cpu.registers.r_f = ((zero_flag | half_carry_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
     cpu.registers.r_a = d8;
 }
 
@@ -66,7 +66,7 @@ pub fn sub(cpu: &mut CPU, data: u8) {
     let subtract_flag = flags::SUBTRACT;
     let half_carry_flag = if ((register_data & 0xF) as i16) - ((data & 0xF) as i16) < 0 { flags::HALF_CARRY } else { flags::RESET };
     let carry_flag = if (register_data as i16) - (data as i16) < 0 { flags::CARRY } else { flags::RESET };
-    cpu.registers.r_f = (zero_flag | subtract_flag | half_carry_flag | carry_flag) as u8;
+    cpu.registers.r_f = ((zero_flag | subtract_flag | half_carry_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
     cpu.registers.r_a = d8;
 }
 
@@ -78,7 +78,7 @@ pub fn sub_carry(cpu: &mut CPU, data: u8) {
     let subtract_flag = flags::SUBTRACT;
     let half_carry_flag = if ((register_data & 0xF) as i16) - ((data & 0xF) as i16) - (carry as i16) < 0 { flags::HALF_CARRY } else { flags::RESET };
     let carry_flag = if (register_data as i16) - (data as i16) - (carry as i16) < 0 { flags::CARRY } else { flags::RESET };
-    cpu.registers.r_f = (zero_flag | subtract_flag | half_carry_flag | carry_flag) as u8;
+    cpu.registers.r_f = ((zero_flag | subtract_flag | half_carry_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
     cpu.registers.r_a = d8;
 }
 
@@ -89,7 +89,7 @@ pub fn and(cpu: &mut CPU, data: u8) {
     // let subtract_flag = flags::RESET; -> this is implied; reset
     let half_carry_flag = flags::HALF_CARRY; // -> set
     // let carry_flag = flags::RESET; -> this is implied; reset
-    cpu.registers.r_f = (zero_flag | half_carry_flag) as u8;
+    cpu.registers.r_f = ((zero_flag | half_carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
     cpu.registers.r_a = d8;
 }
 
@@ -100,7 +100,7 @@ pub fn or(cpu: &mut CPU, data: u8) {
     // let subtract_flag = flags::RESET; -> this is implied; reset
     // let half_carry_flag = flags::RESET; -> this is implied; reset
     // let carry_flag = flags::RESET; -> this is implied; reset
-    cpu.registers.r_f = zero_flag as u8;
+    cpu.registers.r_f = (zero_flag as u8) & 0xF0; // the last 4-bits must be set to zero
     cpu.registers.r_a = d8;
 }
 
@@ -111,7 +111,7 @@ pub fn xor(cpu: &mut CPU, data: u8) {
     // let subtract_flag = flags::RESET; -> this is implied; reset
     // let half_carry_flag = flags::RESET; -> this is implied; reset
     // let carry_flag = flags::RESET; -> this is implied; reset
-    cpu.registers.r_f = zero_flag as u8;
+    cpu.registers.r_f = (zero_flag as u8) & 0xF0; // the last 4-bits must be set to zero
     cpu.registers.r_a = d8;
 }
 
@@ -122,5 +122,5 @@ pub fn compare(cpu: &mut CPU, data: u8) {
     let subtract_flag = flags::SUBTRACT;
     let half_carry_flag = if ((register_data & 0xF) as i16) - ((data & 0xF) as i16) < 0 { flags::HALF_CARRY } else { flags::RESET };
     let carry_flag = if (register_data as i16) - (data as i16) < 0 { flags::CARRY } else { flags::RESET };
-    cpu.registers.r_f = (zero_flag | subtract_flag | half_carry_flag | carry_flag) as u8;
+    cpu.registers.r_f = ((zero_flag | subtract_flag | half_carry_flag | carry_flag) as u8) & 0xF0; // the last 4-bits must be set to zero
 }

@@ -49,7 +49,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
                 },
                 _ => panic!("There's an error at RLC"),
             };
-            cpu.registers.r_f = action_pair.1 as u8;
+            cpu.registers.r_f = (action_pair.1 as u8) & 0xF0; // the last 4-bits must be set to zero
             cycles
         },
         /* RRC r/(HL) */ 0x08..=0x0F => {
@@ -94,7 +94,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
                 },
                 _ => panic!("There's an error at RRC"),
             };
-            cpu.registers.r_f = action_pair.1 as u8;
+            cpu.registers.r_f = (action_pair.1 as u8) & 0xF0; // the last 4-bits must be set to zero
             cycles
         },
         /* RL r/(HL) */ 0x10..=0x17 => {
@@ -139,7 +139,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
                 },
                 _ => panic!("There's an error at RL"),
             };
-            cpu.registers.r_f = action_pair.1 as u8;
+            cpu.registers.r_f = (action_pair.1 as u8) & 0xF0; // the last 4-bits must be set to zero
             cycles
         },
         /* RR r/(HL) */ 0x18..=0x1F => {
@@ -184,7 +184,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
                 },
                 _ => panic!("There's an error at RR"),
             };
-            cpu.registers.r_f = action_pair.1 as u8;
+            cpu.registers.r_f = (action_pair.1 as u8) & 0xF0; // the last 4-bits must be set to zero
             cycles
         },
         /* SLA r/(HL) */ 0x20..=0x27 => {
@@ -229,7 +229,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
                 },
                 _ => panic!("There's an error at SLA"),
             };
-            cpu.registers.r_f = action_pair.1 as u8;
+            cpu.registers.r_f = (action_pair.1 as u8) & 0xF0; // the last 4-bits must be set to zero
             cycles
         },
         /* SRA r/(HL) */ 0x28..=0x2F => {
@@ -274,7 +274,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
                 },
                 _ => panic!("There's an error at SRA"),
             };
-            cpu.registers.r_f = action_pair.1 as u8;
+            cpu.registers.r_f = (action_pair.1 as u8) & 0xF0; // the last 4-bits must be set to zero
             cycles
         },
         /* SWAP r/(HL) */ 0x30..=0x37 => {
@@ -319,7 +319,8 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
                 },
                 _ => panic!("There's an error at SWAP"),
             };
-            cpu.registers.r_f = if register_data == 0 { flags::ZERO } else { flags::RESET };
+            let flags = if register_data == 0 { flags::ZERO } else { flags::RESET };
+            cpu.registers.r_f = flags & 0xF0; // the last 4-bits must be set to zero
             cycles
         },
         /* SRL r/(HL) */ 0x38..=0x3F => {
@@ -364,7 +365,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
                 },
                 _ => panic!("There's an error at SRL"),
             };
-            cpu.registers.r_f = action_pair.1 as u8;
+            cpu.registers.r_f = (action_pair.1 as u8) & 0xF0; // the last 4-bits must be set to zero
             cycles
         },
         /* BIT b,r/(HL) */ 0x40..=0x7F => {
@@ -397,7 +398,7 @@ pub fn execute(cpu: &mut CPU, memory: &mut Memory, opcode: u8) -> usize {
             };
             let flags = bit_operations::bit(d8, bit);
             // Keep the CY flag value; the H flag must be set
-            cpu.registers.r_f = flags | (cpu.registers.r_f & flags::CARRY) as u8;
+            cpu.registers.r_f = (flags | (cpu.registers.r_f & flags::CARRY) as u8) & 0xF0; // the last 4-bits must be set to zero
             cycle
         },
         /* RES b,r/(HL) */ 0x80..=0xBF => {
