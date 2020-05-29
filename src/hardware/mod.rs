@@ -10,6 +10,7 @@ pub mod bit_operations;
 pub mod instruction_subset;
 pub mod instruction_set;
 pub mod interrupt;
+pub mod timer;
 pub mod cpu;
 pub mod ppu;
 pub mod system;
