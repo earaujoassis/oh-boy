@@ -1,4 +1,4 @@
-# NINTENDO&reg; GameBoy&trade; Emulator
+# NINTENDO&reg; GameBoy&trade; Emulator [![Build Status](https://travis-ci.org/earaujoassis/oh-boy.svg?branch=master)](https://travis-ci.org/earaujoassis/oh-boy)
 
 > NINTENDO&reg; GameBoy&trade; emulator written in Rust
 
