@@ -1,0 +1,10 @@
+language: rust
+rust:
+  - 1.42.0
+addons:
+  apt:
+    packages:
+      - libsdl2-dev
+script:
+  - cargo check
+  - cargo test
