@@ -20,7 +20,7 @@ this project (and its compiled binary).
 * [ ] ROM (ROM ONLY, MBC1, MBC1-RAM0, MBC1-RAM1)
 * [ ] Controllers
 * [ ] Audio
-* [ ] Tunning, Optimization, and Compliance to the original hardware
+* [ ] Tuning, Optimization, and Compliance to the original hardware
 * [ ] Bluetooth Joystick (PS4 DualShock 4)
 
 ## Issues
