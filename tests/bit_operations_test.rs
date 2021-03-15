@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    extern crate gameboy_emulator;
-    use tests::gameboy_emulator::hardware::bit_operations::*;
+    extern crate oh_boy;
+    use tests::oh_boy::hardware::bit_operations::*;
 
     // Most of the following tests came from:
     // the "GAME BOY Programming Manual Version 1.1" by NINTENDO, INC.

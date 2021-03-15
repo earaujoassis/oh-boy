@@ -25,7 +25,7 @@ this project (and its compiled binary).
 
 ## Issues
 
-Please take a look at [/issues](https://github.com/earaujoassis/gameboy-emulator/issues)
+Please take a look at [/issues](https://github.com/earaujoassis/oh-boy/issues)
 
 ## License
 
