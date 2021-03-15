@@ -1,9 +1,9 @@
 [package]
-name = "gameboy_emulator"
+name = "oh_boy"
 version = "0.1.0"
 authors = ["Ewerton Carlos Assis <earaujoassis@gmail.com>"]
 description = "NINTENDO GameBoy emulator written in Rust"
-repository = "https://github.com/earaujoassis/gameboy-emulator"
+repository = "https://github.com/earaujoassis/oh-boy"
 readme = "README.md"
 categories = ["emulator", "Nintendo GameBoy", "Nintendo GameBoy Color"]
 license = "MIT"
